@@ -1,0 +1,13 @@
+import */net;
+
+socket = (createSocket 127.0.0.1 900);
+
+thread recieve {
+	message = (recieve $socket);
+	println "Recieved message: " $message;
+};
+
+loop {
+	message = (input);
+	send $socket $message;
+};
