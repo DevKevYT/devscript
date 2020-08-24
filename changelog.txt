@@ -1,0 +1,92 @@
+/// Change log of the DevScript jar file ///
+
+NOTICE:
+	the boolean "useCache" (constructor) is still useless, the command cache will be added in future updates to make the script even faster.
+	Another future plan: Command: "include <abs|rel> <pathToFile>" a command to include external compiled libraries "plug in style".
+	Added in 1.8.0 with the command: import "path_to_jar";
+	
+1.8.2:
+	Fixed issues with the commands: <, <=, >, >= that contain the "long string" braces: <>
+	The following commands have been changed (similar to linux):
+		<	"lt" (less than)
+		>	"gt" (grater than)
+		<= 	"lteq" (less than and equal)
+		>=	"gteq" (grater than and equal)
+	The help command can also differenciate between libraries.
+	Operator commands like +, - * / can now handle Long values.
+
+1.4.0: (beta):
+	Added a feature to get array indices easier and without command. $arrayExample[0]; <- This returns the index 0 of the variable arrayExample.
+	use at own risk, not fully debugged and without 2d array support.
+	
+1.5.0 (stable): DEPRECATED
+	Fully debugged functionality for easier array index access. 
+	arrayExample = [["Inner array"] "This" "is" "an" "example"];
+	Now you can safely use the $arrayExample[1] (= "This") to get indices of arrays and the command "index $arrayExample 1"; is now deprecated.
+	They also work with higher dimensional arrays like in java, for example: $arrayExample[0][0] (= "Inner array")
+	To change an index of an array, use the "->" command. Look at the example below:
+	
+	array = ["old"   "someValue"];
+	newValue = "new";
+	$newValue -> $array[0];
+	
+	The arrow will "shift" the given DataContainer in argument 0 ($newValue) into the second DataContainer $array[0]. Easy and clear, huh? And without confusing command syntax.
+	
+	Also fixed a major issue, with variables declared outside the process.
+
+1.5.1 (stable):
+	Added a java function to get the libraries (getLibraries() as ArrayList<Library>) , which include all the native commands,
+	and also your custom ones, if you added some as separated libraries. 
+	You also have now the ability to name libraries to be able to distinguish between them.
+	But be careful!: Multiple libraries may have the same name!
+	
+1.6.0 (beta):
+	Added some more commands and dictionary support. Look at the example below:
+	
+	dict = (createdict);
+	set $dict "key" "value";
+	println (get $dict "key"); -> value
+
+1.6.1 (stable):
+	Minor performance improvements
+	Working on a bug, where the main block references (!) are not nulled after execution (WTF?!)
+
+1.6.2 (stable)
+	Added various commands to cast values into java.lang.String, java.lang.Float and java.lang.Integer
+
+1.7.0 (stable raw)
+	Improved performance and less data usage by passing raw data instead of creating DataContainers first, which where f*cking unnessesary.
+	Removed commands: "->"
+	Also removed the abillity to pass by reference :8
+	
+1.7.1 (beta)
+	Added "large strings". Use < at the Start of a large String and terminate it with >.
+	Inside a large String you can place ANY character like ", \" or whatsoever.
+	However if you want to place a > without terminating the string, or <, use the escape character: \>
+	Large Strings can also get wrapped like braces. <"This is a large String? <This gets ignored> Now lets terminate the String>
+	In other words, large Strings make the use of special characters possible without escape characters (Except \< of course).
+	
+1.7.2 (stable)
+	Fixed an issue, where the process would throw an error while trying to access the 
+	variable $null
+	
+1.7.3 (stable)
+	Fixed an issue, were you where not able to set any value of an array after the 1.7.0 update.
+	Added the command: === (Since you can't use < or > anymore, because they are keywords)
+	Example: 
+		array = [2 2 3];
+		1 === $array 0;  #Set the value 1 to the $array with index 0#
+	This also works with arrays with multiple dimensions
+		array = [[1 2] [2 4]];
+		3 === $array 1 0; #Set the value 3 to the index 0 from the inner array with index 1 from the $array (Read again, but slow!)#
+
+1.8.0 (beta)
+	Added the option for functions to return values. With the command return "arg1";
+	If you don't pass any arguments for the return command, the returned value will be null (Similar to Java (?))
+	Example:
+	add = {
+		return ($0 + $1);
+	};
+	println (call $add 1 1);
+	
+	-> 2
