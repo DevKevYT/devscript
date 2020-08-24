@@ -1,4 +1,5 @@
 #Devscrip console editor by Sn1pe2win#
+#This is written in the Devscript language and should also be an example of usage#
 
 currentLine = 0;
 lines = [];
