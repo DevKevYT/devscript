@@ -49,6 +49,6 @@ And you can access them with a $ sign, followed by the variable name:
   Arrays can get declared as empty, or filled.
   All arrays are dynamic. They can get altered with ´push [obj] [index]´ and ´pop [index]´.
 
-emptyArray = [];<br>
+> emptyArray = [];<br>
 filledArray = ["string1" "string2" $true];<br>
     
