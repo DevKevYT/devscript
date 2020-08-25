@@ -104,7 +104,84 @@ This would be a typical for- loop:
 The first argument of the _for [STRING] [STRING] [BLOCK]_ command is the variable name.
 >array = ["John" "Peter" "Chris"];<br>for i (length $array) {<br>println $array[$i];<br>};
 
+## If
+Here is an example of an if- statement:
+>if (10 == 11) {<br>println "Condition is true";<br>} {<br>println "Condition is false";<br>};
+
+But keep in mind, that the parantheses after the if are just wrapping another command ([ANY] == [ANY]) and are not there like in Java or other languages.
+>if $true {<br>println "true"<br>};
 ## Thats it!
 Now, if you understand the basic syntax and command usage, you are ready to start!
 It may also be handy to notice, that this script also supports threading.
 You can use the _help_ command for a list of commands, but I will print them below, so you can have a look.
+
+# The Big List
+<code>
+LIBRARY: 'Native' (65 commands)
+
+        println [ARRAY_ANY]                     Prints any object's toString() method in a new line
+        print [ARRAY_ANY]                       Prints any objecs's toString() method
+        [STRING] = [ARRAY_ANY]                  Defines a variable. Access it with $variableName
+        [ARRAY_ANY] === [ANY] [STRING]          [object] === [array] [index] [index] ... Like '=' for arrays
+        [STRING] + [STRING]                     Adds two numbers and returns the result, if either of the arguments is not a number, two strings are added
+        [STRING] - [STRING]                     Subtracts two numbers
+        [STRING] * [STRING]                     Multiplies two numbers
+        [STRING] / [STRING]                     Divides two numbers
+        exec [STRING]                           Executes a shell command
+        script [STRING]                         Executes a new script sub-process with its parent in- and outputs
+        length [ANY]                            Returns the size of the array
+        pop [ANY] [STRING]                      Removes the specified index of the array
+        createdict                              Returns an empty dictionary
+        get [DICTIONARY] [STRING]               get [dictionary] [key] Returns the corresponding value of the key inside the dictionary
+        set [DICTIONARY] [STRING] [ARRAY_ANY]   set [dictionary] [key] [object]
+        remove [DICTIONARY] [STRING]            remove [dictionary] [key] Returns false, if there was no associated key with the name.
+        clear [DICTIONARY]                      clear [dict] Removes all values from the dictionary
+        isEmpty [DICTIONARY]                    Checks, if a dictionary is empty
+        push [ARRAY_ANY] [ANY]                  Pushes a new value into the array
+        [STRING] lt [STRING]                    Returns true, if argument 1 is less than 2 (If the arguments are not numbers, it checks the length of the string)
+        [STRING] lteq [STRING]                  Returns true, if argument 1 is less or equal than 2 (If the arguments are not numbers, it checks the length of the string)
+        [STRING] gteq [STRING]                  Returns true, if argument 1 is grater or equal than 2 (If the arguments are not numbers, it checks the length of the string)
+        [STRING] gt [STRING]                    Returns true, if argument 1 is grater than 2 (If the arguments are not numbers, it checks the length of the string)
+        [ANY] == [ANY]                          Returns true, if argument 1 and 2 are equal
+        [ANY] != [ANY]                          Returns true, if argument 1 and 2 are not equal
+        not [BOOLEAN]                           Inverts a boolean
+        [BOOLEAN] and [BOOLEAN] [ANY]           Chain boolean conditions: if ($true and $true or $false) {...
+        random                                  Returns a random number between 0 and 1
+        [BOOLEAN] or [BOOLEAN] [ANY]            Chain boolean conditions: if ($true or $true and $false) {...
+        int [ANY]                               Casts the given value into java.lang.Integer
+        float [ANY]                             Casts the given object into java.lang.Float
+        string [ANY]                            Casts the given value into java.lang.String
+        call [BLOCK] [ARRAY_ANY]                Executes a function (Variable that is a block: x = { function code... }. You can also pass arguments. Access them inside the block with $0 $1 etc...Returns the returned value of the function
+        if [BOOLEAN] [BLOCK] [BLOCK]            If statement
+        if [BOOLEAN] [BLOCK]                    If statement
+        ifnot [BOOLEAN] [BLOCK]                 Inverted If-statement
+        for [STRING] [STRING] [BLOCK]           For loop: for i 10 {...}
+        loop [BLOCK]                            Infinite loop. Use the break command inside it.
+        break                                   Breaks out of the next found loop in the stack. If no loop was found, this command interrupts the block
+        kill [STRING]                           Stops the application and throws an error message
+        input                                   Reads input from the set input stream
+        [ARRAY_ANY] typeof [STRING]             Argument 2 is a string representation of the type like the command arguments. There are two adittional useful types: int and float
+        wait [STRING]
+        thread [STRING] [BLOCK]                 Runs a separate thread along the process
+        kill [BLOCK]
+        pause                                   Pauses the block, the command is executed in
+        pause [BLOCK]                           Pauses the specified block, if it is running in a separate thread.
+        waitfor [BLOCK]                         Waits for a block to finish
+        wake [BLOCK]                            Wakes the specified thread
+        alive [BLOCK]
+        return [ARRAY_ANY]                      Searches the first occurrence of a block that is a function and returns its given value or null (Block execution gets terminated)
+        return [BLOCK]
+        charAt [STRING] [STRING]                [index] [string]
+        stringLength [STRING]
+        toArray [STRING]
+        substring [STRING] [STRING] [STRING]    [string] [begin] [end]
+        version                                 Prints the version of the script
+        help                                    Prints all the available commands with a brief explanation and arguments
+        import [STRING]                         Imports a library from a compiled .jar file. The class should extend com.mygdx.devkev.devscript.raw.Library and be named CustomLibrary You can use a * to reference the current path the process is executed in (*/library.jar
+        getFile [STRING]                        Returns a java.io.File object
+        fileExists [OBJECT]                     Checks if a file exists
+        deleteFile [OBJECT]                     Deletes a file. You can use this command, if you want to clear a files content and append lines with the writeFileLine command
+        writeFileLine [OBJECT] [STRING]         [file] [content] Appends a new line to the file
+        listDirectory [OBJECT]                  Returns an array containing all files inside this directory
+  </code>
+
