@@ -34,7 +34,7 @@ so you could pass an infinite amount of STRINGs (Because the last type before CO
 ### Command Syntax
 The whole syntax is based on commands. These act like functions, that means, they can return values and accept arguments and are separated with ';'.<br>
 Example for the command println:
-  - This command expects strings without limitation in number: _println [STRING] [ANY]_ and returns $null, that means nothing.
+  - This command expects strings without limitation in number: _println [STRING] [CONTINUE]_ and returns $null, that means nothing.
   > println "Hello World" "And another line";
 
 Command names can also be shifted, like the _[string] + [string]_ command to make the code more readable:
