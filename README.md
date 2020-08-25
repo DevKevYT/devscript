@@ -11,4 +11,12 @@ p.addInput(System.in);
 p.execute("println \"Hello World\"");
 ```
 
-To get a list of all the commands, you can execute the command "help", but i will include a buch of them here:
+Syntax:
+
+The whole syntax is based on commands. These act like functions, that means, they can return values and accept arguments.
+These arguments can be consistent of: String, Object, Boolean, Null, Any, Array_Any, Dictionary.
+Example for the command println:
+  This command expects an unlimited amount of strings: println <string> ...;
+  ´´´java
+  println "Hello World" "And another line";
+  ´´´
