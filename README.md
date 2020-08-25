@@ -21,8 +21,7 @@ Example for the command println:
   - This command expects an unlimited amount of strings: println <string> ... and returns Null, that means nothing.
   > println "Hello World" "And another line";
 
-Command names can also be shifted, like the "+" command to make the code more readable:
-- This command takes two strings, adds them together and returns the new value.
+Command names can also be shifted, like the _<string> + <string>_ command to make the code more readable:
   >  1 + 1;
   
 But this command alone does not do very much. How do you use the new, returned value?
