@@ -15,6 +15,7 @@ p.execute("println \"Hello World\"");
 
 # Syntax
 
+## Commands
 The whole syntax is based on commands. These act like functions, that means, they can return values and accept arguments.
 These arguments can be consistent of: String, Object, Boolean, Null, Any, Array_Any, Dictionary and Blocks.
 Example for the command println:
@@ -34,11 +35,14 @@ This is the same as:
 Commands can be combined with others with parantheses.
  >  println (1 + (4 / 2));
 
-Variables:
-  Variables can get declared with the "=" command.
-    foo = 10;
-  And you can access them with a $ sign, followed by the variable name:
-    println $foo;
+## Variables
+
+Variables can get declared with the "=" command.
+And you can access them with a $ sign, followed by the variable name:
+> foo = 10;
+
+> println (1 + $foo);
+
   There are also a few inbuild variables:
     $true, $false and $null
     
