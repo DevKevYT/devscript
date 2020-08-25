@@ -93,3 +93,18 @@ However if an array -for example- only has Strings, the type of the array will b
 _Tip: To check a variable for a type, you can use the [ANY] typeof [STRING] command.<br>
 The [STRING] argument would be the type written out. Different types are listed in the Section: Data Types. Minor and Major work.<br>
 $filledArray typeof "any" would return true._
+
+Also arrays with multiple dimensions are possible. You access an array index like in any other programming language:
+>array = [["inner" "inner2"] "string"];<br>println $array[1];<br>println $array[0][1];
+
+And if we are discussing Arrays and you already know about blocks, you may want to learn how to use for loops etc.:
+This would be a typical for- loop:
+>for i 10 {<br>println "This text will be printed 10 times!";<br>println "Iteration: " $i;<br>};
+
+The first argument of the _for [STRING] [STRING] [BLOCK]_ command is the variable name.
+>array = ["John" "Peter" "Chris"];<br>for i (length $array) {<br>println $array[$i];<br>};
+
+## Thats it!
+Now, if you understand the basic syntax and command usage, you are ready to start!
+It may also be handy to notice, that this script also supports threading.
+You can use the _help_ command for a list of commands, but I will print them below, so you can have a look.
