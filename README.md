@@ -11,7 +11,7 @@ p.addInput(System.in);
 p.execute("println \"Hello World\"");
 ```
 
-Syntax:
+##Syntax##
 
 The whole syntax is based on commands. These act like functions, that means, they can return values and accept arguments.
 These arguments can be consistent of: String, Object, Boolean, Null, Any, Array_Any, Dictionary and Blocks.
