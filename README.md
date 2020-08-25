@@ -21,16 +21,18 @@ Example for the command println:
   - This command expects an unlimited amount of strings: println <string> ... and returns Null, that means nothing.
   > println "Hello World" "And another line";
 
-Command names can also be shifted, like the _<string> + <string>_ command to make the code more readable:
+Command names can also be shifted, like the _[string] + [string]_ command to make the code more readable:
   >  1 + 1;
   
 But this command alone does not do very much. How do you use the new, returned value?
 Look at this example:
-  >  println (1 + 1);
+  >  println (1 + 1); 
+
+This is the same as:
   >  println 2; 
   
 Commands can be combined with others with parantheses.
-  println (1 + (4 / 2));
+ >  println (1 + (4 / 2));
 
 Variables:
   Variables can get declared with the "=" command.
