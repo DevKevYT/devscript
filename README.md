@@ -13,8 +13,16 @@ Both input and outputs are the default System.in and System.out, but you can def
 Process p = new Process(true);
 p.addSystemOutput();
 p.addInput(System.in);
-p.execute("println \"Hello World\"");
+p.execute("println \"Hello World\"", false); //If the process should be executed in a separate thread.
+p.execute(new File("path_to_file"), true);
 ```
+You can also execute the script inside the console with the raw jar file.
+> java -jar devscript_1.8.2.jar -e "version"
+
+Command line arguments are:<br>
+- -e or --execute Executes a script right from the command line
+- -f or --file Executes the contents of a text file
+- If no argument is passed, the jar opens the default editor, stored in Editor.txt
 
 # Syntax
 In this big section, I will try to bring you near the usage and capabillities of the DevScript, so you can use them for your own projects
