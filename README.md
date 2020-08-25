@@ -11,13 +11,13 @@ p.addInput(System.in);
 p.execute("println \"Hello World\"");
 ```
 
-##Syntax##
+# Syntax
 
 The whole syntax is based on commands. These act like functions, that means, they can return values and accept arguments.
 These arguments can be consistent of: String, Object, Boolean, Null, Any, Array_Any, Dictionary and Blocks.
 Example for the command println:
   This command expects an unlimited amount of strings: println <string> ... and returns Null, that means nothing.
-  println "Hello World" "And another line";
+  > println "Hello World" "And another line";
 
 Command names can also be shifted, like the "+" command to make the code more readable:
   This command takes two strings, adds them together and returns the new value.
