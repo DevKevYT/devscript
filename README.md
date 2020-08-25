@@ -39,8 +39,7 @@ Commands can be combined with others with parantheses.
 
 Variables can get declared with the "=" command.
 And you can access them with a $ sign, followed by the variable name:
-> foo = 10;
-> println (1 + $foo);
+> foo = 10;<br>println (1 + $foo);
 
   There are also a few inbuild variables:
     ´$true, $false and $null´
