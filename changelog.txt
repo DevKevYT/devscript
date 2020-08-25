@@ -13,7 +13,7 @@ NOTICE:
 		<= 	"lteq" (less than and equal)
 		>=	"gteq" (grater than and equal)
 	The help command can also differenciate between libraries.
-	Operator commands like +, - * / can now handle Long values.
+	Operator commands like +, - * / can now handle Long values (UPDATE: Not really XD)
 
 1.4.0: (beta):
 	Added a feature to get array indices easier and without command. $arrayExample[0]; <- This returns the index 0 of the variable arrayExample.
