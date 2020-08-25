@@ -40,15 +40,14 @@ Commands can be combined with others with parantheses.
 Variables can get declared with the "=" command.
 And you can access them with a $ sign, followed by the variable name:
 > foo = 10;
-
 > println (1 + $foo);
 
   There are also a few inbuild variables:
-    $true, $false and $null
+    ´$true, $false and $null´
     
-Arrays:
-  Array can get declared like this:
-     array = [];
-  This would be an empty array. An array filled with strings would look like this:
-     array = ["String1" "String2" "String3"];
+## Arrays
+  Arrays can get declared as empty, or filled.
+  All arrays are dynamic. They can get altered with ´push [obj] [index]´ and ´pop [index]´.
+  > emptyArray = [];
+  > filledArray = ["string1" "string2" $true];
     
