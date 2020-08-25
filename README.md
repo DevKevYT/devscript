@@ -20,13 +20,12 @@ Example for the command println:
   > println "Hello World" "And another line";
 
 Command names can also be shifted, like the "+" command to make the code more readable:
-  This command takes two strings, adds them together and returns the new value.
-  This would be valid program: 
->  1 + 1;
+- This command takes two strings, adds them together and returns the new value.
+  >  1 + 1;
 But this command alone does not do very much. How do you use the new, returned value?
 Look at this example:
->  println (1 + 1); ->
->  println 2; 
+  >  println (1 + 1); ->
+  >  println 2; 
 Commands can be combined with others with parantheses.
   println (1 + (4 / 2));
 
