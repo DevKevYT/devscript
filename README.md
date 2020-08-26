@@ -112,7 +112,7 @@ And if we are discussing Arrays and you already know about blocks, you may want 
 This would be a typical for- loop:
 >for i 10 {<br>println "This text will be printed 10 times!";<br>println "Iteration: " $i;<br>};
 
-The first argument of the _for [STRING] [STRING] [BLOCK]_ command is the variable name.
+The first argument of the _for [STRING] [STRING] [BLOCK]_ command is the variable name starting at zero.
 >array = ["John" "Peter" "Chris"];<br>for i (length $array) {<br>println $array[$i];<br>};
 
 ## If
