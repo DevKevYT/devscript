@@ -74,10 +74,10 @@ And you can access them with a $ sign, followed by the variable name:
 Blocks are code, wrapped inside two curly braces { }.
 In theDevScript Language, blocks are treated as a data type [BLOCK]. Basically, a block only consists of a code String and
 their main goal is to provide functions.
-To define a function, you create a variable as usual (With the "+" command), since -as already mentioned- blocks are just data types and can get passed as command argument.
+To define a function, you create a variable as usual (With the "=" command), since -as already mentioned- blocks are just data types and can get passed as command argument.
 > function = {<br>println "I am a function :)";<br>println "But how do you execute me?"<br>};
 
-To execute a function, use the _"call [BLOCK] [ANY] ..."_ command:
+To execute a function, use the _"call [BLOCK] [CONTINUE] ..."_ command:
 > call $function;
 
 Functions can also accept arguments (This is why the call command has some more optional arguments).<br>
