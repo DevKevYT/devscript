@@ -90,7 +90,7 @@ Last but not least, functions can also return value with the command _return [AN
 Please take your time to understand this section, as it can get quite complex.
 ## Arrays
   Arrays can get declared as empty, or filled.
-  All arrays are dynamic. They can get altered with ´push [obj] [index]´ and ´pop [index]´.
+  All arrays are dynamic. They can get altered with ´push [ANY] [ARRAY]´ and ´pop [STRING]´.
 
 > emptyArray = [];<br>
 filledArray = ["string1" "string2" $true (20 + 12) {println "Arrays can hold blocks. They are data types :)"}];<br>
