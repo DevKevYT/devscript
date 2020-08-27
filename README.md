@@ -16,12 +16,12 @@ p.addInput(System.in);
 p.execute("println \"Hello World\"", false); //If the process should be executed in a separate thread.
 p.execute(new File("path_to_file"), true);
 ```
-You can also execute the script inside the console with the raw jar file.
+You can also execute the script from the command line with the raw jar file.
 > java -jar devscript_1.8.2.jar -e "version"
 
 Command line arguments are:<br>
-- -e or --execute Executes a script right from the command line
-- -f or --file Executes the contents of a text file
+- -e or --execute <script> Executes a script right from the command line
+- -f or --file <path-to-file> Executes the contents of a text file
 - If no argument is passed, the jar opens the default editor, stored in Editor.txt
 
 # Syntax
