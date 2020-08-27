@@ -13,6 +13,8 @@ public class Array { //For dataContainers
 		updateArraytype();
 	}
 	
+	public Array() {}
+	
 	public void push(Object container) {
 		indexes.add(container);
 		updateArraytype();
