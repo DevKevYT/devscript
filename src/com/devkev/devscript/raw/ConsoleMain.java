@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URLDecoder;
 
 /**@author Philipp Gersch
  * @version 1.8.2 (stable)
@@ -15,8 +16,12 @@ public class ConsoleMain {
 		Process p = new Process(true);
 		p.addSystemOutput();
 		p.setInput(System.in);
-		
+
 		if(args.length == 0) {
+			if(ConsoleMain.class.getResourceAsStream("/Editor.txt") == null) {
+				System.err.println("Editor file is missing at: " + URLDecoder.decode(ConsoleMain.class.getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8"));
+				return;
+			}
 			BufferedReader reader = new BufferedReader(new InputStreamReader(ConsoleMain.class.getResourceAsStream("/Editor.txt")));
 			String code  = "";
 			String line = reader.readLine();

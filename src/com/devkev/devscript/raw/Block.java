@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public class Block { //So stupid...
 	
 	public final StringBuilder blockCode;
-	
+	public int executeIndex = 0;	//The current char index, that is executed or compiled. 0 < ExecuteIndex < blockCode.length() 
 	String currentCommand = "";
 	public Thread thread;  	//A block can also be attached to a thread. This variable would store the thread, the blockCode is executed in.
 						//Be careful. May be null

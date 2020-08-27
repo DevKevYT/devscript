@@ -22,21 +22,22 @@ public class Process {
 	private static final boolean True = true;
 	private static final Object Null = null;
 	
-	//private Thread thread;
 	private BufferedReader inputReader;
 	private InputStream inputStream;
 	
 	Block main;
-	private final ArrayList<Block> aliveBlocks = new ArrayList<Block>(1); //Main is not in the list
+	//Main block is not never in the list, since the process gets terminated, if main is killed.
+	private final ArrayList<Block> aliveBlocks = new ArrayList<Block>(1); 
 	boolean breakRequested = false;
 	
 	public long maxRuntime = 0; //Runtime in ms. If < 0, runtime is infinite
 	private long start = 0;
-//	private ArrayList<Command> commandCache = new ArrayList<Command>(10);
-//	private int cacheLimit = 30;
+	public final String version = "1.8.3"; 
 	
-	public final String version = "1.8.2"; 
+	/**The file, the script is executed from. May be null. Just useful for some Native commands*/
+	public File file = null;
 	
+	/**Coming soon*/
 	public boolean debug = false;
 	public volatile int commands_executed = 0;
 	public volatile long process_start = 0;
@@ -54,8 +55,7 @@ public class Process {
 		}
 	}
 	
-	class Variable {
-		
+	class Variable {	
 		final String name;
 		private Object value;
 		final boolean FINAL;
@@ -88,13 +88,11 @@ public class Process {
 	/**@param useCache - If the process should temprary save common used commands in a separate list.
 	 * May improve performance on large scripts, but also increase the memory usage.
 	 * <br>In worst case, the data usage of the command library could be doubled.
-	 * <br>Use {@link Process#setCacheLimit(int limit)} to limit cache usage*/
+	 * <br>Use {@link Process#setCacheLimit(int limit)} to limit cache usage
+	 * It also imports the NativeLibrary (basic commands like if,println ...) at default.
+	 * If you don't want these native commands, call {@link Process#clearLibraries()} before adding your custom ones*/
 	public Process(boolean useCache) {
 		includeLibrary(new NativeLibrary());
-	}
-	
-	public Process(boolean useCache, Library... libs) {
-		for(Library l : libs) includeLibrary(l);
 	}
 	
 	public Thread execute(String script, boolean newThread) {
@@ -152,15 +150,13 @@ public class Process {
 		}
 		reader.close();
 		
+		this.file = file;
 		return execute(code, newThread);
 	}
 	
 	private void start(Block block) {
 		if(block == null) return;
-//		if(block.alive) {
-//			error("Block " + block + " already running");
-//			return;
-//		}
+		
 		process_start = System.currentTimeMillis();
 		commands_executed = 0;
 		average_commands_per_sec = 0;
@@ -181,7 +177,10 @@ public class Process {
 		
 		short lStringWrap = 0;
 		
+		block.executeIndex = 0;
 		for(int i = 0; i < block.blockCode.length(); i++) {
+			block.executeIndex ++;
+			
 			char c = block.blockCode.charAt(i);
 			boolean ignore = false;
 			
@@ -451,7 +450,7 @@ public class Process {
 							return null;
 						}
 						
-						boolean canBeInteger = ApplicationBuilder.testForInteger(index.toString());
+						boolean canBeInteger = ApplicationBuilder.testForWholeNumber(index.toString());
 						if(!canBeInteger) {
 							kill(block, "Index must be an integer");
 							return null;

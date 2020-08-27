@@ -40,6 +40,9 @@ public final class ApplicationBuilder {
     	if(object.getClass().isArray()) panic("Single objects can't hold arrays. Use the Process.Array class to use arrays");
     	
     	if(object instanceof String) return new DataType(Type.STRING, false);
+    	else if(object instanceof Integer) return new DataType(Type.STRING, false);
+    	else if(object instanceof Float) return new DataType(Type.STRING, false);
+    	else if(object instanceof Long) return new DataType(Type.STRING, false);
     	else if(object instanceof Boolean) return new DataType(Type.BOOLEAN, false);
     	else if(object instanceof Block) return new DataType(Type.BLOCK, false);
     	else if(object instanceof Dictionary) return new DataType(Type.DICTIONARY, false);
@@ -87,7 +90,7 @@ public final class ApplicationBuilder {
 	}
 	
 	/**Test, if the given string is convert-able to integer. (Contains only numbers)*/
-	public static boolean testForInteger(String string) {
+	public static boolean testForWholeNumber(String string) {
 		if(string == null) return false;
 		if(string.isEmpty()) return false;
 		if(string.startsWith("-")) string = string.substring(1);
@@ -98,12 +101,14 @@ public final class ApplicationBuilder {
 		return true;
 	}
 	
-	/***/
+	/**Valid, if the string is separated either with a dot, or a comma:<br>
+	 * <code>0.01<br>0,2<br>12,000.00</code> Is not allowed, because of a separator.<br><code>12000.00 or 12000,00</code>would be accepted.*/
 	public static boolean testForFloat(String string) {
 		if(string == null) return false;
 		if(string.isEmpty()) return false;
 		if(string.startsWith("-")) string = string.substring(1);
 		
+		string = string.replaceAll(",", ".");
 		boolean point = false;
 		for(int i = 0; i < string.length(); i++) {
 			char c = string.charAt(i);

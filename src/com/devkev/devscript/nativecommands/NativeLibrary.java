@@ -1,7 +1,9 @@
 package com.devkev.devscript.nativecommands;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.net.URLDecoder;
 import java.util.Random;
@@ -21,6 +23,7 @@ import com.devkev.devscript.raw.ApplicationBuilder.Type;
 
 public class NativeLibrary extends Library {
 
+	
 	public NativeLibrary() {
 		super("Native");
 	}
@@ -31,7 +34,8 @@ public class NativeLibrary extends Library {
 				new Command("println", "??? ...", "Prints any object's toString() method in a new line") { 
 					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						for(Object d : args) application.log(d == null ? "null" : d.toString(), true);
+						for(Object d : args) application.log(d == null ? "null" : d.toString(), false);
+						application.log("", true);
 						return null;
 					}
 				},
@@ -60,7 +64,7 @@ public class NativeLibrary extends Library {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						Array arr = (Array) args[1];
 						for(int i = 2; i < args.length; i++) {
-							if(ApplicationBuilder.testForInteger(args[2].toString())) {
+							if(ApplicationBuilder.testForWholeNumber(args[2].toString())) {
 								int index = Integer.valueOf(args[i].toString());
 								if(index >= 0 && index < arr.getIndexes().size()) {
 									if(i < args.length-1) {
@@ -79,13 +83,17 @@ public class NativeLibrary extends Library {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						if(!ApplicationBuilder.testForFloat(args[0].toString()) || !ApplicationBuilder.testForFloat(args[1].toString())) {
 							return args[0].toString() + args[1].toString();
+						}					
+						
+						if(ApplicationBuilder.testForWholeNumber(args[0].toString()) && ApplicationBuilder.testForWholeNumber(args[1].toString())) {
+							if(args[0].toString().length() <= 19 && args[1].toString().length() <= 19) {
+								return String.valueOf(Long.valueOf(args[0].toString()) + Long.valueOf(args[1].toString()));
+							} else return args[0].toString() + args[1].toString();
+						} else { //Only valid float values remain
+							float f1 = Float.valueOf(args[0].toString());
+							float f2 = Float.valueOf(args[1].toString());
+							return String.format(java.util.Locale.US, "%.4f", (f1 + f2));
 						}
-						Float num0 = Float.valueOf(args[0].toString());
-						Float num1 = Float.valueOf(args[1].toString());
-						if(num0 != null && num1 != null) {
-							if(num0 % 1 == 0 && num1 % 1 == 0 && !args[0].toString().contains(".") && !args[1].toString().contains(".")) return String.valueOf(Integer.valueOf(args[0].toString()) + Integer.valueOf(args[1].toString()));
-							else return String.valueOf(num0 + num1);
-						} else return args[0].toString() + args[1].toString();
 					}
 				},
 				
@@ -95,11 +103,19 @@ public class NativeLibrary extends Library {
 							application.kill(block, "Can only subtract numbers!");
 							return null;
 						}
-						Float num0 = Float.valueOf(args[0].toString());
-						Float num1 = Float.valueOf(args[1].toString());
-						if(num0 % 1 == 0 && num1 % 1 == 0) {
-							return String.valueOf(Integer.valueOf(args[0].toString()) - Integer.valueOf(args[1].toString()));
-						} else return String.valueOf(num0 - num1);
+						
+						if(ApplicationBuilder.testForWholeNumber(args[0].toString()) && ApplicationBuilder.testForWholeNumber(args[1].toString())) {
+							if(args[0].toString().length() <= 19 && args[1].toString().length() <= 19) {
+								return String.valueOf(Long.valueOf(args[0].toString()) - Long.valueOf(args[1].toString()));
+							} else {
+								application.kill(block, "Can only subtract numbers!");
+								return null;
+							}
+						} else { //Only valid float values remain
+							float f1 = Float.valueOf(args[0].toString());
+							float f2 = Float.valueOf(args[1].toString());
+							return String.format(java.util.Locale.US, "%.4f", (f1 - f2));
+						}
 					}
 				},
 				
@@ -109,11 +125,18 @@ public class NativeLibrary extends Library {
 							application.kill(block, "Can only multiply numbers!");
 							return null;
 						}
-						Float num0 = Float.valueOf(args[0].toString());
-						Float num1 = Float.valueOf(args[1].toString());
-						if(num0 % 1 == 0 && num1 % 1 == 0) {
-							return String.valueOf(Integer.valueOf(args[0].toString()) * Integer.valueOf(args[1].toString()));
-						} else return String.valueOf(num0 * num1);
+						if(ApplicationBuilder.testForWholeNumber(args[0].toString()) && ApplicationBuilder.testForWholeNumber(args[1].toString())) {
+							if(args[0].toString().length() <= 19 && args[1].toString().length() <= 19) {
+								return String.valueOf(Long.valueOf(args[0].toString()) * Long.valueOf(args[1].toString()));
+							} else {
+								application.kill(block, "Can only multiply numbers!");
+								return null;
+							}
+						} else { //Only valid float values remain
+							float f1 = Float.valueOf(args[0].toString());
+							float f2 = Float.valueOf(args[1].toString());
+							return String.format(java.util.Locale.US, "%.4f", (f1 * f2));
+						}
 					}
 				},
 				
@@ -123,15 +146,9 @@ public class NativeLibrary extends Library {
 							application.kill(block, "Can only divide numbers!");
 							return null;
 						}
-						Float num0 = Float.valueOf(args[0].toString());
-						Float num1 = Float.valueOf(args[1].toString());
-						
-						if(num1 == 0) {
-							application.kill(block, "Dividing by zero");
-							return null;
-						}
-						
-						return String.valueOf(num0 / num1);
+						float f1 = Float.valueOf(args[0].toString());
+						float f2 = Float.valueOf(args[1].toString());
+						return String.format(java.util.Locale.US, "%f", (f1 / f2));
 					}
 				},
 				
@@ -161,7 +178,7 @@ public class NativeLibrary extends Library {
 				new Command("pop", "@? string", "Removes the specified index of the array") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						Array array = (Array) args[0];
-						if(!ApplicationBuilder.testForInteger(args[1].toString())) {
+						if(!ApplicationBuilder.testForWholeNumber(args[1].toString())) {
 							application.kill(block, "Array index needs to be an integer");
 							return null;
 						}
@@ -329,7 +346,7 @@ public class NativeLibrary extends Library {
 				new Command("random", "", "Returns a random number between 0 and 1") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						Random r = new Random();
-						return String.valueOf(r.nextFloat());
+						return String.format(java.util.Locale.US,"%.4f", r.nextFloat());
 					}
 				},
 				
@@ -360,6 +377,17 @@ public class NativeLibrary extends Library {
 						}
 						float f = Float.valueOf(args[0].toString());
 						return (int) f;
+					}
+				},
+				
+				new Command("long", "?", "Casts the given value into java.lang.Long") {
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						if(!ApplicationBuilder.testForFloat(args[0].toString())) {
+							application.kill(block, "Unable to convert type " + args[0].getClass().getTypeName() + " into java.lang.Integer");
+							return null;
+						}
+						float f = Float.valueOf(args[0].toString());
+						return (long) f;
 					}
 				},
 				
@@ -412,7 +440,7 @@ public class NativeLibrary extends Library {
 				
 				new Command("for", "string string block", "For loop: for i 10 {...}") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForInteger(args[1].toString())) {
+						if(!ApplicationBuilder.testForWholeNumber(args[1].toString())) {
 							application.kill(block, "Argument 2 needs to be an integer!");
 							return null;
 						}
@@ -493,9 +521,9 @@ public class NativeLibrary extends Library {
 							return null;
 						}
 						
-						if(checkType.type == Type.INTEGER) return ApplicationBuilder.testForInteger(args[0].toString());
+						if(checkType.type == Type.INTEGER) return ApplicationBuilder.testForWholeNumber(args[0].toString());
 						else if(checkType.type == Type.FLOAT) return ApplicationBuilder.testForFloat(args[0].toString());
-						else if(checkType.type == Type.NUMBER) return ApplicationBuilder.testForInteger(args[0].toString()) || ApplicationBuilder.testForFloat(args[0].toString());
+						else if(checkType.type == Type.NUMBER) return ApplicationBuilder.testForWholeNumber(args[0].toString()) || ApplicationBuilder.testForFloat(args[0].toString());
 						else return ApplicationBuilder.typeMatch(ApplicationBuilder.toDataType(args[0]), checkType);
 					}
 					
@@ -503,7 +531,7 @@ public class NativeLibrary extends Library {
 				
 				new Command("wait", "string", "") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForInteger(args[0].toString())) application.kill(block, "Argument 1 needs to be an integer at command: wait <milliseconds>");
+						if(!ApplicationBuilder.testForWholeNumber(args[0].toString())) application.kill(block, "Argument 1 needs to be an integer at command: wait <milliseconds>");
 						Thread.sleep(Integer.valueOf(args[0].toString()));
 						return null;
 					}
@@ -602,7 +630,7 @@ public class NativeLibrary extends Library {
 				
 				new Command("charAt", "string string", "[index] [string]") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForInteger(args[0].toString())) {
+						if(!ApplicationBuilder.testForWholeNumber(args[0].toString())) {
 							application.kill(block, "Argument 1 needs to be an integer!");
 							return null;
 						}
@@ -631,7 +659,7 @@ public class NativeLibrary extends Library {
 				
 				new Command("substring", "string string string", "[string] [begin] [end]") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForInteger(args[1].toString()) || !ApplicationBuilder.testForInteger(args[2].toString())) {
+						if(!ApplicationBuilder.testForWholeNumber(args[1].toString()) || !ApplicationBuilder.testForWholeNumber(args[2].toString())) {
 							application.kill(block, "Argument 1 and 2 need to be integer");
 							return null;
 						}
@@ -714,10 +742,46 @@ public class NativeLibrary extends Library {
 					}
 				},
 				
-				new Command("getFile", "string", "Returns a java.io.File object") {
+				new Command("use", "string", "use <string> Inserts the given code. (Tip: Usefil in combination with 'readFile'!)") {
 					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						return new File(args[0].toString());
+						block.blockCode.insert(block.executeIndex, args[0].toString());
+						application.log(block.blockCode.toString(), true);
+						return null;
+					}
+				},
+				
+				new Command("readFile", "obj", "readFile <file> Returns the file as string") {
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						File file = (File) args[0];
+						if(file.isDirectory()) {
+							application.kill(block, "Unable to read directory!");
+							return null;
+						}
+						StringBuilder content = new StringBuilder();
+						BufferedReader reader = new BufferedReader(new FileReader(file));
+						String line = reader.readLine();
+						while(line != null) {
+							content.append(line);
+							line = reader.readLine();
+						}
+						reader.close();
+						return content;
+					}
+					
+				},
+				
+				new Command("getFile", "string", "Returns a java.io.File object. Use */ to reference the current directory.") {
+					@Override
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						File file;
+						if(args[0].toString().startsWith("*")) {
+							if(application.file == null) {
+								File dir = new File(URLDecoder.decode(ConsoleMain.class.getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8"));
+								file = new File(dir.getParent() + args[0].toString().substring(1));
+							} else file = new File(application.file.getParent() + args[0].toString().substring(1));
+						} else file = new File(args[0].toString());
+						return file;
 					}
 				},
 				
@@ -759,6 +823,22 @@ public class NativeLibrary extends Library {
 					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						return ((File) (args[0])).isDirectory();
+					}
+				},
+				
+				new Command("%", "string string", "[STRING] % [STRING]", 1) {
+					@Override
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						if(!ApplicationBuilder.testForWholeNumber(args[0].toString()) || !ApplicationBuilder.testForWholeNumber(args[1].toString())) {
+							application.kill(block, "This command can only handle integers!");
+							return null;
+						}
+						if(args[0].toString().length() <= 19 && args[1].toString().length() <= 19) {
+							return String.valueOf(Long.valueOf(args[0].toString()) % Long.valueOf(args[1].toString()));
+						} else {
+							application.kill(block, "Can only % numbers!");
+							return null;
+						}
 					}
 				}
 		};
