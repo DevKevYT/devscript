@@ -21,7 +21,7 @@ You can also execute the script from the command line with the raw jar file.
 
 Command line arguments are:<br>
 - -e or --execute <script> Executes a script right from the command line
-- -f or --file <path-to-file> Executes the contents of a text file
+- -f or --file <pathToFile> Executes the contents of a text file
 - If no argument is passed, the jar opens the default editor, stored in Editor.txt
 
 # Syntax
