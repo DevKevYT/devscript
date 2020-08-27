@@ -5,6 +5,17 @@ NOTICE:
 	Another future plan: Command: "include <abs|rel> <pathToFile>" a command to include external compiled libraries "plug in style".
 	Added in 1.8.0 with the command: import "path_to_jar";
 	
+1.8.3:
+	- New Command: use [STRING]; This command replaces the location of the command with code from the given string as the first argument.
+	  This command is especially useful, if you want to include code from a separate file without creating a whole new library.
+	- New Command: long [ANY]; This command casts a given value into java.lang.Long.
+	- New Command: [STRING] % [STRING]; Modulo command.
+	- New Command: readFileLines [OBJ]; Reads the file and returns an array containing all the lines.
+	- Arithmetic operators (+, -, *, /, %) are now able to handle Long.MAX_VALUE values and java.lang.Integers, java.lang.Floats and java.lang.Long not just Strings
+	  as numbers before. (println ((int 10) + 4); is now possible)
+	- The random command now returns only floating pint with 4 decimals and the issue with scientific notation is fixed.
+	- Floating point notation supports now bot US ('.') and European (',') notation.
+	
 1.8.2:
 	Fixed issues with the commands: <, <=, >, >= that contain the "long string" braces: <>
 	The following commands have been changed (similar to linux):
@@ -13,7 +24,7 @@ NOTICE:
 		<= 	"lteq" (less than and equal)
 		>=	"gteq" (grater than and equal)
 	The help command can also differenciate between libraries.
-	Operator commands like +, - * / can now handle Long values.
+	Operator commands like +, - * / can now handle Long values (UPDATE: Not really XD)
 
 1.4.0: (beta):
 	Added a feature to get array indices easier and without command. $arrayExample[0]; <- This returns the index 0 of the variable arrayExample.
