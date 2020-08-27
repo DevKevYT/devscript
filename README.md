@@ -1,5 +1,5 @@
-# devscript
-A Java inbuild script for developing and debugging
+# Devscript
+A script inside Java for developing and debugging
 
 # Implementation
 
