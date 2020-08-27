@@ -746,7 +746,6 @@ public class NativeLibrary extends Library {
 					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						block.blockCode.insert(block.executeIndex, args[0].toString());
-						application.log(block.blockCode.toString(), true);
 						return null;
 					}
 				},
@@ -766,7 +765,7 @@ public class NativeLibrary extends Library {
 							line = reader.readLine();
 						}
 						reader.close();
-						return content;
+						return content.toString();
 					}
 					
 				},
