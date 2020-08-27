@@ -128,7 +128,7 @@ You can use the _help_ command for a list of commands, but I will print them bel
 
 # All default commands
 
-LIBRARY 'Native' (65 Commands)
+LIBRARY 'Native' (65 Commands)<br>
 println [ARRAY_ANY]											Prints any object's toString() method in a new line<br>
 print [ARRAY_ANY]                       Prints any objecs's toString() method<br>
 [STRING] = [ARRAY_ANY]                  Defines a variable. Access it with $variableName<br>
