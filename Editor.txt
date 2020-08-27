@@ -31,11 +31,10 @@ printLinesUntil = {
 exec cls;
 call $printHeading;
 
-#Main loop#
 loop {
 	input = (call $recieveInput $currentLine);
 	if ($input != "") {
-	if ($input == "edit") {
+	if ($input == "/edit") {
 		println "EDIT LINE?";
 		line = (input);	
 		call $printLinesUntil ($line + 1);
@@ -47,11 +46,11 @@ loop {
 			call $printAll;
 		} {pop $lines $line;currentLine = ($currentLine - 1)};
 	} {
-		if ($input == "list") {
+		if ($input == "/list") {
 			exec cls;
 			call $printAll;
 		} {
-			if ($input == "run") {
+			if ($input == "/run") {
 				whole = "";
 				for i (length $lines) {
 					whole = ($whole + $lines[$i]);
@@ -64,7 +63,7 @@ loop {
 				println "";
 				script $whole;
 				println "";
-				print "Done. Press Any Key...";
+				print "Done. Press Enter...";
 				input;
 				exec cls;
 				call $printAll;
@@ -72,25 +71,34 @@ loop {
 			} {
 				if ($input == /help) {
 					println "Available commands:";
-					println "/help, run, edit, list, new";
+					println "/help, /run, /edit, /list, /new, /save, /load";
 					println "Fun fact: This program is written in the devscript language! Take a look into the Editor.txt file!"; 
 				} {
-					if ($input == new) {
+					if ($input == /new) {
 						lines = [];
 						currentLine = 0;
 						exec cls;
 						call $printAll;
 					} {
 						if ($input == "/save") {
-							println "SAFE FILE TO?";
+							println "SAFE FILE TO? (Use */ for current path)";
 							file = (getFile (input));
 							for i (length $lines) {
 								writeFileLine $file $lines[$i];
 							};
 							println "FILE SAVED TO" $file;
 						} {
-							push $input $lines;
-							currentLine = ($currentLine + 1);
+							if ($input == /load) {
+								println "LOAD FILE FROM? (Use */ for current path)";
+								file = (getFile (input));
+								fl = (readFileLines $file);
+								lines = $fl;
+								currentLine = ((length $fl) + 1);
+								println "FILE LOADED";
+							} {
+								push $input $lines;
+								currentLine = ($currentLine + 1);
+							};
 						};
 					};
 				};
