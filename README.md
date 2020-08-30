@@ -32,8 +32,8 @@ In this big section, I will try to bring you near the usage and capabillities of
 ### Data Types
 *This section is only important, if you want to implement your own library if not, you can skip this section*<br>
 There are 6 main data types: _STRING, BOOLEAN, BLOCK, DICTIONARY, ARRAY, OBJECT_ (OBJECT is any Java object)<br>
-There are also 4 minor data types: _ANY, ARRAY_ANY, INTEGER, FLOAT, CONTINUE_<br>
-They are called, minor types, because they are not considered as 'real' data types. They are only important in specific situations<br>
+There are also 4 sub- data types: _ANY, ARRAY_ANY, INTEGER, FLOAT, CONTINUE_<br>
+Sub- data types are not considered as 'real' data types. They are only important in specific situations<br>
 
 This would be a typical command, that expects certain argument types:
 > exampleCommand [BLOCK] [ANY] [STRING] [CONTINUE];
