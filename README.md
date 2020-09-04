@@ -17,7 +17,7 @@ p.execute("println \"Hello World\"", false); //If the process should be executed
 p.execute(new File("path_to_file"), true);
 ```
 You can also execute the script from the command line with the raw jar file.
-> java -jar devscript_1.8.2.jar -e "version"
+> java -jar devscript_1.8.3.jar -e "version"
 
 Command line arguments are:<br>
 - -e or --execute <script> Executes a script right from the command line
