@@ -13,10 +13,11 @@ Both input and outputs are the default System.in and System.out, but you can def
 Process p = new Process(true);
 p.addSystemOutput();
 p.addInput(System.in);
-p.execute("println \"Hello World\"", false); //If the process should be executed in a separate thread.
+p.execute("println \"Hello World\"", false);
 p.execute(new File("path_to_file"), true);
 ```
-You can also execute the script from the command line with the raw jar file.
+You can also execute the script from the command line with the raw jar file.<br>
+This example will execute the command "help"
 > java -jar devscript_1.8.3.jar -e "version"
 
 Command line arguments are:<br>
@@ -30,7 +31,6 @@ In this big section, I will try to bring you near the usage and capabillities of
 ## Commands
 
 ### Data Types
-*This section is only important, if you want to implement your own library if not, you can skip this section*<br>
 There are 6 main data types: _STRING, BOOLEAN, BLOCK, DICTIONARY, ARRAY, OBJECT_ (OBJECT is any Java object)<br>
 There are also 4 sub- data types: _ANY, ARRAY_ANY, INTEGER, FLOAT, CONTINUE_<br>
 Sub- data types are not considered as 'real' data types. They are only important in specific situations<br>
