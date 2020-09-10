@@ -3,7 +3,7 @@ A script inside Java for developing and debugging
 
 # Implementation
 
-Just copy the Code into your favorite IDE or import the downloadable .jar file to your build path and you are done!<br>
+Just copy the Code into your project or import the downloadable .jar (under "releases") file to your build path and you are done!<br>
 DevScript does not use any unnessecary external libraries.
 
 Basic syntax to execute a "Hello World" script as a string inside your program:
