@@ -15,11 +15,14 @@ import java.awt.event.KeyListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 
 import javax.swing.BorderFactory;
+import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -57,6 +60,7 @@ public class Window {
 	volatile int inputStart = 0;
 	
 	private static Font font;
+	private File openedFile = null; //Null means, creating a new file when saving.
 	
 	public Window() {
 		try {
@@ -85,17 +89,21 @@ public class Window {
 		p.addOutput(new Output() {
 			public void warning(String message) {
 				console.append("[WARN]" + message + "\n");
+				consolePane.getVerticalScrollBar().setValue(consolePane.getVerticalScrollBar().getMaximum());
 			}
 			public void log(String message, boolean newline) {
 				console.append(message + (newline ? "\n" : ""));
+				consolePane.getVerticalScrollBar().setValue(consolePane.getVerticalScrollBar().getMaximum());
 			}
 			public void error(String message) {
 				console.append(message + "\n");
+				consolePane.getVerticalScrollBar().setValue(consolePane.getVerticalScrollBar().getMaximum());
 			}
 		});
 		input = new ApplicationInput() {
 			@Override
 			public void awaitInput() {
+				System.out.println("Waiting for input...");
 				waitForEnter = true;
 				console.setEnabled(true);
 				inputStart = console.getText().length();
@@ -106,7 +114,7 @@ public class Window {
 		p.setInput(input);
 		p.setApplicationListener(new ApplicationListener() {
 			public void done(int exitCode) {
-				runWindow.setTitle("Done (Exit Code " + exitCode + ")");
+				runWindow.setTitle("Finished with Exit Code " + exitCode);
 				window.setEnabled(true);
 				console.setEnabled(false);
 			}
@@ -129,14 +137,17 @@ public class Window {
 		JMenu m = new JMenu("File");
 		
 		JMenuItem newFile = new JMenuItem("New");
+		newFile.setAccelerator(KeyStroke.getKeyStroke("control N"));
 		newFile.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				textArea.setText("");
+				openedFile = null;
 			}
 		});
 		m.add(newFile);
 		
-		JMenuItem loadFile = new JMenuItem("Load File");
+		JMenuItem loadFile = new JMenuItem(getFormattedBarText("Open..."));
+		loadFile.setAccelerator(KeyStroke.getKeyStroke("control O"));
 		loadFile.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				window.setEnabled(false);
@@ -148,11 +159,12 @@ public class Window {
 						BufferedReader reader = new BufferedReader(new FileReader(chooser.getSelectedFile()));
 						String line = reader.readLine();
 						while(line != null) {
-							appendToPane(textArea, "\n" + line, Color.black);
+							appendToPane(textArea, line + "\n", Color.black);
 							line = reader.readLine();
 						}
 						reader.close();
 						window.setEnabled(true);
+						openedFile = chooser.getSelectedFile();
 					} catch (Exception e1) {
 						e1.printStackTrace();
 						window.setEnabled(true);
@@ -164,6 +176,29 @@ public class Window {
 		});
 		m.add(loadFile);
 		JMenuItem saveFile = new JMenuItem("Save File");
+		saveFile.setAccelerator(KeyStroke.getKeyStroke("control S"));
+		saveFile.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(openedFile == null) {
+					if(textArea.getText().isEmpty()) return;
+					window.setEnabled(false);
+					JFileChooser chooser = new JFileChooser();
+					chooser.setDialogTitle("Save new file");
+					int res = chooser.showSaveDialog(new JFrame());
+					if(res == JFileChooser.APPROVE_OPTION) {
+						BufferedWriter writer = new BufferedWriter(new FileWriter(chooser.getSelectedFile()));
+						try {
+							writer.write(textArea.getText());
+							writer.close();
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+					}
+					window.setEnabled(true);
+				} else System.out.println("Overwriging file...");
+				
+			}
+		});
 		m.add(saveFile);
 		bar.add(m);
 		
@@ -171,7 +206,7 @@ public class Window {
 		bar.add(m2);
 		
 		JMenu m3 = new JMenu("Run");
-		JMenuItem run = new JMenuItem(getFormattedBarText("Run in shell"));
+		JMenuItem run = new JMenuItem(getFormattedBarText("Run in Shell"));
 		run.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0));
 		run.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -182,7 +217,6 @@ public class Window {
 				runWindow.setVisible(true);	
 				window.setEnabled(false);
 				p.execute(textArea.getText(), true);
-				System.out.println("Done");
 			}
 		});
 		m3.add(run);
@@ -200,6 +234,14 @@ public class Window {
 		initRunWindow();
 		window.pack();
 		window.setSize(500, 500);
+	}
+	
+	JFrame saveDialog;
+	JButton approveSave;
+	JButton cancelSave;
+	
+	public void initSaveNotification() {
+		saveDialog = new JFrame("Save changes to ");
 	}
 	
 	JFrame runWindow;
@@ -244,7 +286,6 @@ public class Window {
 		console.addCaretListener(new CaretListener() {
 			@Override
 			public void caretUpdate(CaretEvent e) {
-				System.out.println("Updating caret...");
 				System.out.println(console.getCaretPosition() + " " + inputStart);
 				if(input.inputRequested() && console.getCaretPosition() < inputStart) {
 					console.setCaretPosition(inputStart);
@@ -268,6 +309,7 @@ public class Window {
 		consolePane = new JScrollPane(console, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		consolePane.setBounds(5, 5, runWindow.getRootPane().getWidth()-10,  runWindow.getRootPane().getHeight()-10);
 		consolePane.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+		consolePane.setAutoscrolls(true);
 		runWindow.add(consolePane);
 		
 		runWindow.pack();
