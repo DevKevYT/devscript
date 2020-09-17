@@ -17,6 +17,7 @@ public class Process {
 	private ArrayList<GeneratedLibrary> libraries = new ArrayList<GeneratedLibrary>();
 	private ArrayList<Output> output = new ArrayList<Output>(1); 
 	private ArrayList<Variable> variables = new ArrayList<Variable>(5);
+	private ApplicationListener listener;
 	
 	private static final boolean False = false;
 	private static final boolean True = true;
@@ -104,6 +105,7 @@ public class Process {
 		}
 		
 		script = script.replaceAll("\t", "");
+		script = script.replaceAll("\r", "");
 		
 		main = new Block(new StringBuilder(script), null);
 		main.thread = null;
@@ -165,6 +167,7 @@ public class Process {
 		//char[] arr = block.blockCode.toCharArray();
 		StringBuilder command = new StringBuilder();
 		
+		block.exitCode = Block.DONE;
 		block.alive = true;
 		block.interrupted = false;
 		if(!checkForInterrupt(block)) return;
@@ -250,6 +253,7 @@ public class Process {
 		}
 		
 		block.alive = false;
+		if(block.equals(main) && listener != null) listener.done(main.exitCode); 
 		aliveBlocks.remove(block);
 	}
 	
@@ -650,10 +654,9 @@ public class Process {
 		return null;
 	}
 	
-	/***/
 	public synchronized void kill(Block block, String errorMessage) {
 		if(block == null) {
-			error("Error in JVM> " + errorMessage);
+			error("Java Error> " + errorMessage);
 			return;
 		} else {
 			if (block.currentCommand.length() > 30) {
@@ -671,6 +674,7 @@ public class Process {
 			block.currentCommand = "";
 		}
 		
+		block.exitCode = Block.ERROR;
 		aliveBlocks.clear();
 		garbageCollection(main);
 		System.gc();
@@ -766,6 +770,14 @@ public class Process {
 	
 	public void breakLoop() {
 		breakRequested = true;
+	}
+	
+	public void setApplicationListener(ApplicationListener listener) {
+		this.listener = listener;
+	}
+	
+	public ApplicationListener getApplicationListener() {
+		return listener;
 	}
 	
 	public static String findMatching(String string, int start, int skip, char openChar, char closeChar, char escapeChar, boolean removeEscape) {

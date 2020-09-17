@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URLDecoder;
 
+import com.devkev.gui.Window;
+
 /**@author Philipp Gersch
  * @version 1.8.2 (stable)
  * Valid arguments are: <br>-e or --execute [some code] - Executes the String<br>
@@ -46,6 +48,8 @@ public class ConsoleMain {
 				System.exit(-1);
 			}
 			p.execute(new File(args[1]), true);
-		} 
+		}  else if(args[0].equals("--gui") || args[0].equals("-g")) {
+			new Window();
+		}
 	}
 }
