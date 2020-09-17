@@ -14,7 +14,6 @@ public abstract class ApplicationInput extends InputStream {
 	public int read() throws IOException {
 		if(!inputReqested) {
 			inputReqested = true;
-			System.out.println("Awaiting input...");
 			awaitInput();
 			synchronized (this) {
 				try {
@@ -29,6 +28,7 @@ public abstract class ApplicationInput extends InputStream {
 			System.out.println("Fetching data... " + data.getBytes()[index-1]);
 			return data.getBytes()[index-1];
 		} else {
+			inputReqested = false;
 			data = "";
 			index = 0;
 			return -1;

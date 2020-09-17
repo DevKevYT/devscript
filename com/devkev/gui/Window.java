@@ -1,11 +1,16 @@
 package com.devkev.gui;
 
 import java.awt.Color;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.HeadlessException;
 import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
 import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentEvent;
@@ -20,6 +25,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -61,6 +69,10 @@ public class Window {
 	
 	private static Font font;
 	private File openedFile = null; //Null means, creating a new file when saving.
+	private static final String TITLE = "Devscript 1.9.0 Editor (pre alpha build)";
+	private ArrayList<String> history = new ArrayList<String>();
+	private int historyIndex = 0;
+	public int maxHistorySize = 50;
 	
 	public Window() {
 		try {
@@ -68,7 +80,7 @@ public class Window {
 	    } catch (Exception evt) {}
 		font = new Font("Consolas", Font.PLAIN, 13);
 		
-		window = new JFrame("Devscript 1.9.0 Editor (pre alpha build)");
+		window = new JFrame(TITLE + " - unsaved");
 		window.setVisible(true);
 		window.setResizable(true);
 		window.setLayout(null);
@@ -142,6 +154,7 @@ public class Window {
 			public void actionPerformed(ActionEvent e) {
 				textArea.setText("");
 				openedFile = null;
+				window.setTitle(TITLE + " - unsaved");
 			}
 		});
 		m.add(newFile);
@@ -164,7 +177,9 @@ public class Window {
 						}
 						reader.close();
 						window.setEnabled(true);
+						window.toFront();
 						openedFile = chooser.getSelectedFile();
+						window.setTitle(TITLE);
 					} catch (Exception e1) {
 						e1.printStackTrace();
 						window.setEnabled(true);
@@ -183,26 +198,60 @@ public class Window {
 					if(textArea.getText().isEmpty()) return;
 					window.setEnabled(false);
 					JFileChooser chooser = new JFileChooser();
-					chooser.setDialogTitle("Save new file");
+					chooser.setDialogTitle("Save New File");
 					int res = chooser.showSaveDialog(new JFrame());
-					if(res == JFileChooser.APPROVE_OPTION) {
-						BufferedWriter writer = new BufferedWriter(new FileWriter(chooser.getSelectedFile()));
-						try {
-							writer.write(textArea.getText());
-							writer.close();
-						} catch (IOException e1) {
-							e1.printStackTrace();
-						}
-					}
+					if(res == JFileChooser.APPROVE_OPTION) saveDocument(chooser.getSelectedFile());
 					window.setEnabled(true);
-				} else System.out.println("Overwriging file...");
-				
+				} else saveDocument(openedFile);
+				window.setTitle(TITLE + " - saved");
 			}
 		});
 		m.add(saveFile);
 		bar.add(m);
 		
 		JMenu m2 = new JMenu("Edit");
+		JMenuItem undo = new JMenuItem(getFormattedBarText("Undo"));
+		undo.setAccelerator(KeyStroke.getKeyStroke("control Z"));
+		undo.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(historyIndex > 0) {
+					historyIndex--;
+					textArea.setText(history.get(historyIndex));
+					if(historyIndex == 0) undo.setEnabled(false);
+				}
+			}
+		});
+		undo.setEnabled(false);
+		m2.add(undo);
+		m2.addSeparator();
+		JMenuItem selectAll = new JMenuItem(getFormattedBarText("Select All"));
+		selectAll.setAccelerator(KeyStroke.getKeyStroke("control A"));
+		selectAll.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				textArea.selectAll();
+			}
+		});
+		JMenuItem copyToClipboard = new JMenuItem(getFormattedBarText("Copy"));
+		copyToClipboard.setAccelerator(KeyStroke.getKeyStroke("control C"));
+		copyToClipboard.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(textArea.getSelectedText()),null);
+			}
+		});
+		JMenuItem paste = new JMenuItem(getFormattedBarText("Paste"));
+		paste.setAccelerator(KeyStroke.getKeyStroke("control V"));
+		paste.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					textArea.setText((String) Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor));
+				} catch (HeadlessException | UnsupportedFlavorException | IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+		});
+		m2.add(selectAll);
+		m2.add(copyToClipboard);
+		m2.add(paste);
 		bar.add(m2);
 		
 		JMenu m3 = new JMenu("Run");
@@ -222,10 +271,79 @@ public class Window {
 		m3.add(run);
 		bar.add(m3);
 		
+		JMenu m4 = new JMenu("Help");
+		JMenuItem help = new JMenuItem("Tutorial");
+		help.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				ProcessBuilder pb = new ProcessBuilder("Notepad.exe", "README.md");
+				try {
+					pb.start();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}				
+			}
+		});
+		m4.add(help);
+		JMenuItem license = new JMenuItem("License");
+		license.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				ProcessBuilder pb = new ProcessBuilder("Notepad.exe", "LICENSE");
+				try {
+					pb.start();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}	
+			}
+		});
+		JMenuItem changelog = new JMenuItem("Changelog");
+		changelog.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				ProcessBuilder pb = new ProcessBuilder("Notepad.exe", "changelog.txt");
+				try {
+					pb.start();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+		});
+		m4.add(changelog);
+		m4.add(license);
+		m4.addSeparator();
+		JMenuItem about = new JMenuItem("About / GitHub");
+		about.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				try {
+					Desktop.getDesktop().browse(new URI("https://github.com/DevKevYT/devscript"));
+				} catch (IOException | URISyntaxException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+		m4.add(about);
+		m4.addSeparator();
+		JMenuItem ty = new JMenuItem("Thank you! <3");
+		ty.setEnabled(false);
+		m4.add(ty);
+		bar.add(m4);
+		
 		window.setJMenuBar(bar);
 		
 		textArea = new JTextPane();
 		textArea.setFont(font);
+		textArea.addKeyListener(new KeyListener() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				if(!e.isControlDown()) window.setTitle(TITLE + " - unsaved");
+			}
+			public void keyReleased(KeyEvent e) {
+				if(e.isControlDown()) return;
+				history.add(textArea.getText());
+				if(history.size() >= 20) history.remove(0);
+				historyIndex = history.size()-1;
+				undo.setEnabled(true);
+			}
+			public void keyPressed(KeyEvent e) {}
+		});
 		pane = new JScrollPane(textArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		pane.setBounds(5, 5, window.getRootPane().getWidth() - 10, window.getRootPane().getHeight()-bar.getHeight() - 10);
 		pane.setBorder(BorderFactory.createLineBorder(Color.BLACK));
@@ -234,6 +352,16 @@ public class Window {
 		initRunWindow();
 		window.pack();
 		window.setSize(500, 500);
+	}
+	
+	private void saveDocument(File file) {
+		try {
+			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+			writer.write(textArea.getText());
+			writer.close();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
 	}
 	
 	JFrame saveDialog;
