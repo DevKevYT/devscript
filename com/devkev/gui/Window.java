@@ -28,11 +28,15 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -51,6 +55,7 @@ import javax.swing.text.StyleContext;
 
 import com.devkev.devscript.raw.ApplicationInput;
 import com.devkev.devscript.raw.ApplicationListener;
+import com.devkev.devscript.raw.ConsoleMain;
 import com.devkev.devscript.raw.Output;
 import com.devkev.devscript.raw.Process;
 
@@ -73,6 +78,8 @@ public class Window {
 	private ArrayList<String> history = new ArrayList<String>();
 	private int historyIndex = 0;
 	public int maxHistorySize = 50;
+	
+	JLabel commandPreview;
 	
 	public Window() {
 		try {
@@ -148,7 +155,7 @@ public class Window {
 		
 		JMenu m = new JMenu("File");
 		
-		JMenuItem newFile = new JMenuItem("New");
+		JMenuItem newFile = new JMenuItem("New...");
 		newFile.setAccelerator(KeyStroke.getKeyStroke("control N"));
 		newFile.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -158,6 +165,8 @@ public class Window {
 			}
 		});
 		m.add(newFile);
+		m.addSeparator();
+		
 		
 		JMenuItem loadFile = new JMenuItem(getFormattedBarText("Open..."));
 		loadFile.setAccelerator(KeyStroke.getKeyStroke("control O"));
@@ -190,7 +199,7 @@ public class Window {
 			}
 		});
 		m.add(loadFile);
-		JMenuItem saveFile = new JMenuItem("Save File");
+		JMenuItem saveFile = new JMenuItem("Save File...");
 		saveFile.setAccelerator(KeyStroke.getKeyStroke("control S"));
 		saveFile.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -348,6 +357,32 @@ public class Window {
 		pane.setBounds(5, 5, window.getRootPane().getWidth() - 10, window.getRootPane().getHeight()-bar.getHeight() - 10);
 		pane.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 		window.add(pane);	
+		
+		commandPreview = new JLabel("This is a test");
+		commandPreview.setBorder(BorderFactory.createLineBorder(Color.black, 2));
+		commandPreview.setBackground(Color.lightGray);
+		commandPreview.setBounds(20, 20, 100, 40);
+		commandPreview.setLocation(30, 30);
+		commandPreview.addKeyListener(new KeyListener() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				
+			}
+			
+			@Override
+			public void keyReleased(KeyEvent e) {
+			}
+			
+			@Override
+			public void keyPressed(KeyEvent e) {
+				System.out.println(e.getKeyCode());
+				if(e.isControlDown() && e.getKeyCode() == KeyEvent.VK_SPACE) {
+					System.out.println("PReview!");
+				}
+			}
+		});
+		commandPreview.setVisible(true);
+		window.add(commandPreview);
 		
 		initRunWindow();
 		window.pack();
