@@ -33,7 +33,7 @@ public class Process {
 	
 	public long maxRuntime = 0; //Runtime in ms. If < 0, runtime is infinite
 	private long start = 0;
-	public final String version = "1.8.3"; 
+	public final String version = "1.9.0"; 
 	
 	/**The file, the script is executed from. May be null. Just useful for some Native commands*/
 	public File file = null;
@@ -106,6 +106,7 @@ public class Process {
 		
 		script = script.replaceAll("\t", "");
 		script = script.replaceAll("\r", "");
+		script = script.replaceAll("\n", " ");
 		
 		main = new Block(new StringBuilder(script), null);
 		main.thread = null;

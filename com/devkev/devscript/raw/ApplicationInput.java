@@ -25,7 +25,6 @@ public abstract class ApplicationInput extends InputStream {
 		}
 		index++;
 		if(index < data.length() && !data.isEmpty()) {
-			System.out.println("Fetching data... " + data.getBytes()[index-1]);
 			return data.getBytes()[index-1];
 		} else {
 			inputReqested = false;

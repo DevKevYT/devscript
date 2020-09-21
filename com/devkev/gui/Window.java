@@ -28,18 +28,17 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JLayeredPane;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
@@ -55,7 +54,6 @@ import javax.swing.text.StyleContext;
 
 import com.devkev.devscript.raw.ApplicationInput;
 import com.devkev.devscript.raw.ApplicationListener;
-import com.devkev.devscript.raw.ConsoleMain;
 import com.devkev.devscript.raw.Output;
 import com.devkev.devscript.raw.Process;
 
@@ -74,11 +72,13 @@ public class Window {
 	
 	private static Font font;
 	private File openedFile = null; //Null means, creating a new file when saving.
-	private static final String TITLE = "Devscript 1.9.0 Editor (pre alpha build)";
+	private static final String TITLE = "Devscript 1.9.0 Editor (Alpha)";
 	private ArrayList<String> history = new ArrayList<String>();
 	private int historyIndex = 0;
 	public int maxHistorySize = 50;
 	
+	JLayeredPane layerPane;
+	JPanel previewContainer;
 	JLabel commandPreview;
 	
 	public Window() {
@@ -96,6 +96,7 @@ public class Window {
 			public void componentResized(ComponentEvent e) {
 				if(textArea == null) return;
 				pane.setSize(window.getRootPane().getWidth() - 10, window.getRootPane().getHeight()-bar.getHeight() - 10);
+				layerPane.setSize(window.getRootPane().getWidth() - 10, window.getRootPane().getHeight()-bar.getHeight() - 10);
 				pane.updateUI();
 			}
 			public void componentShown(ComponentEvent e) {}
@@ -122,7 +123,6 @@ public class Window {
 		input = new ApplicationInput() {
 			@Override
 			public void awaitInput() {
-				System.out.println("Waiting for input...");
 				waitForEnter = true;
 				console.setEnabled(true);
 				inputStart = console.getText().length();
@@ -148,6 +148,42 @@ public class Window {
 					console.setCaretColor(Color.black);
 				}
 				return false;
+//				if(window.isEnabled() && e.isControlDown() && e.getKeyCode() == KeyEvent.VK_SPACE) {
+//					String commandSnippet = textArea.getText();
+//					for(int i = textArea.getCaretPosition(); i >= 0; i--) {
+//						char current = textArea.getText().charAt(i);
+//						System.out.println("CHecking: '" + current + "'");
+//						if(current == ' ' || current == '\n' || current == '\t' || current == '\r' || Alphabet.partOf(current) || i == 0) {
+//							System.out.println((i+1) + " " + textArea.getCaretPosition());
+//							commandSnippet = textArea.getText().substring(i == 0 ? i : i+1, textArea.getCaretPosition()).trim();
+//							System.out.println("Snippet: " + commandSnippet);
+//							break;
+//						}
+//					}
+//					if(!commandSnippet.isEmpty()) {
+//						commandPreview.setVisible(true);
+//						commandPreview.setLocation(textArea.getCaret().getMagicCaretPosition().x + 5, textArea.getCaret().getMagicCaretPosition().y + 25);
+//						
+//						StringBuilder html = new StringBuilder("<html><body>");
+//						for(GeneratedLibrary lib : p.getLibraries()) {
+//							for(Command c : lib.commands) {
+//								if(c.name.length() >= commandSnippet.length()) {
+//									if(c.name.substring(0, commandSnippet.length()).equals(commandSnippet)) {
+//										String args = "";
+//										for(DataType s : c.arguments) {
+//											args += "[" + s.type + "] ";
+//										}
+//										html.append(c.name + " " + args + "<br>");
+//									}
+//								}
+//							}
+//						}
+//						html.append("</body></html>");
+//						System.out.println(html);
+//						commandPreview.setText(html.toString());
+//					}
+//				}
+//				return false;
 			}
 		});
 		
@@ -165,8 +201,6 @@ public class Window {
 			}
 		});
 		m.add(newFile);
-		m.addSeparator();
-		
 		
 		JMenuItem loadFile = new JMenuItem(getFormattedBarText("Open..."));
 		loadFile.setAccelerator(KeyStroke.getKeyStroke("control O"));
@@ -176,23 +210,7 @@ public class Window {
 				JFileChooser chooser = new JFileChooser();
 				int res = chooser.showOpenDialog(new JFrame());
 				if(res == JFileChooser.APPROVE_OPTION) {
-					try {
-						textArea.setText("");
-						BufferedReader reader = new BufferedReader(new FileReader(chooser.getSelectedFile()));
-						String line = reader.readLine();
-						while(line != null) {
-							appendToPane(textArea, line + "\n", Color.black);
-							line = reader.readLine();
-						}
-						reader.close();
-						window.setEnabled(true);
-						window.toFront();
-						openedFile = chooser.getSelectedFile();
-						window.setTitle(TITLE);
-					} catch (Exception e1) {
-						e1.printStackTrace();
-						window.setEnabled(true);
-					}
+					openDocument(chooser.getSelectedFile());
 				} else {
 					window.setEnabled(true);
 				}
@@ -216,6 +234,90 @@ public class Window {
 			}
 		});
 		m.add(saveFile);
+		m.addSeparator();
+		JMenu examples = new JMenu("Examples");
+		
+		JMenuItem selectionSort = new JMenuItem("Selection Sort");
+		selectionSort.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				openDocument(null);
+				textArea.setText("#Selection sort example by DevKev#\r\n" + 
+						"\r\n" + 
+						"unsorted = [3 4 7 8 9 543 23 7 5 32 1 56 7 65 34 13 5 7  2];\r\n" + 
+						"sorted = [];\r\n" + 
+						"record = 99999;\r\n" + 
+						"index = -1;\r\n" + 
+						"\r\n" + 
+						"loop" + 
+						" {\r\n" + 
+						"	for i (length $unsorted) \r\n" + 
+						"	{\r\n" + 
+						"		if ($unsorted[$i] lt $record) \r\n" + 
+						"		{\r\n" + 
+						"			record = $unsorted[$i];\r\n" + 
+						"			index = $i;\r\n" + 
+						"		};\r\n" + 
+						"	};\r\n" + 
+						"\r\n" + 
+						"	push $unsorted[$index] $sorted;\r\n" + 
+						"	pop $unsorted $index;\r\n" + 
+						"	record = 99999;\r\n" + 
+						"	\r\n" + 
+						"	if ((length $unsorted) == 0) \r\n" + 
+						"	{\r\n" + 
+						"		break;\r\n" + 
+						"	};\r\n" + 
+						"};\r\n" + 
+						"\r\n" + 
+						"println \"Done\";\r\n" + 
+						"println $sorted;");
+			}
+		});
+		examples.add(selectionSort);
+		
+		JMenuItem calculator = new JMenuItem("Calculator");
+		calculator.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openDocument(null);
+				textArea.setText("#Simple calculator with input#\r\n" + 
+						"#Should also be an example for functions#\r\n" + 
+						"\r\n" + 
+						"calculate = {\r\n" + 
+						"	num1 = $0; #Better names#\r\n" + 
+						"	num2 = $1;\r\n" + 
+						"	operator = $2;\r\n" + 
+						"\r\n" + 
+						"	ifnot (($num1 typeof num) or ($num2 typeof num))\r\n" + 
+						"	{\r\n" + 
+						"		println \"Error\";\r\n" + 
+						"		return;\r\n" + 
+						"	};\r\n" + 
+						"\r\n" + 
+						"	if ($operator == +)\r\n" + 
+						"	{\r\n" + 
+						"		return ($num1 + $num2);\r\n" + 
+						"	};\r\n" + 
+						"	if ($operator == -) \r\n" + 
+						"	{	\r\n" + 
+						"		return ($num1 - $num2);\r\n" + 
+						"	};\r\n" + 
+						"	println \"Error, unknown operator: \" $operator;\r\n" + 
+						"};\r\n" + 
+						"\r\n" + 
+						"print \"Enter first number: \";\r\n" + 
+						"num1 = (input);\r\n" + 
+						"print \"Enter second number: \";\r\n" + 
+						"num2 = (input);\r\n" + 
+						"print \"Enter operator (+, -): \";\r\n" + 
+						"operator = (input);\r\n" + 
+						"\r\n" + 
+						"println \"Calculating...\";\r\n" + 
+						"println (call $calculate $num1 $num2 $operator);");
+			}
+		});
+		examples.add(calculator);
+		
+		m.add(examples);
 		bar.add(m);
 		
 		JMenu m2 = new JMenu("Edit");
@@ -281,6 +383,17 @@ public class Window {
 		bar.add(m3);
 		
 		JMenu m4 = new JMenu("Help");
+		JMenuItem commandCC = new JMenuItem("Command Cheatsheet");
+		commandCC.setToolTipText("Runs the 'help' command");
+		commandCC.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(p.isRunning()) return;
+				console.setText("");
+				runWindow.toFront();
+				runWindow.setVisible(true);
+				p.execute("help", false);
+			}});
+		m4.add(commandCC);
 		JMenuItem help = new JMenuItem("Tutorial");
 		help.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -339,10 +452,12 @@ public class Window {
 		
 		textArea = new JTextPane();
 		textArea.setFont(font);
+		textArea.setLayout(null);
 		textArea.addKeyListener(new KeyListener() {
 			@Override
 			public void keyTyped(KeyEvent e) {
 				if(!e.isControlDown()) window.setTitle(TITLE + " - unsaved");
+				commandPreview.setVisible(false);
 			}
 			public void keyReleased(KeyEvent e) {
 				if(e.isControlDown()) return;
@@ -356,44 +471,59 @@ public class Window {
 		pane = new JScrollPane(textArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		pane.setBounds(5, 5, window.getRootPane().getWidth() - 10, window.getRootPane().getHeight()-bar.getHeight() - 10);
 		pane.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-		window.add(pane);	
 		
-		commandPreview = new JLabel("This is a test");
-		commandPreview.setBorder(BorderFactory.createLineBorder(Color.black, 2));
-		commandPreview.setBackground(Color.lightGray);
-		commandPreview.setBounds(20, 20, 100, 40);
-		commandPreview.setLocation(30, 30);
-		commandPreview.addKeyListener(new KeyListener() {
-			@Override
-			public void keyTyped(KeyEvent e) {
-				
-			}
-			
-			@Override
-			public void keyReleased(KeyEvent e) {
-			}
-			
-			@Override
-			public void keyPressed(KeyEvent e) {
-				System.out.println(e.getKeyCode());
-				if(e.isControlDown() && e.getKeyCode() == KeyEvent.VK_SPACE) {
-					System.out.println("PReview!");
-				}
-			}
-		});
-		commandPreview.setVisible(true);
-		window.add(commandPreview);
+		commandPreview = new JLabel("<html><body>println [STRING]<br>print [STRING]</body></html>");
+		commandPreview.setBorder(BorderFactory.createLineBorder(Color.black, 1));
+		commandPreview.setOpaque(true);
+		commandPreview.setVisible(false);
+		commandPreview.setForeground(Color.darkGray);
+		commandPreview.setFont(new Font("Arial", Font.BOLD, 11));
+		commandPreview.setBounds(0,  0,  200, 60);
+		
+		layerPane = new JLayeredPane();
+		layerPane.add(pane);
+		layerPane.add(commandPreview);
+		layerPane.setLayer(commandPreview, 999);
+		window.add(layerPane);
 		
 		initRunWindow();
 		window.pack();
 		window.setSize(500, 500);
 	}
 	
-	private void saveDocument(File file) {
+	public void setScript(String script) {
+		appendToPane(textArea, script, Color.black);
+	}
+	
+	public void openDocument(File file) {
+		try {
+			history.clear();
+			textArea.setText("");
+			if(file != null) {
+				BufferedReader reader = new BufferedReader(new FileReader(file));
+				String line = reader.readLine();
+				while(line != null) {
+					appendToPane(textArea, line + "\n", Color.black);
+					line = reader.readLine();
+				}
+				reader.close();
+			}
+			window.setEnabled(true);
+			window.toFront();
+			openedFile = file;
+			window.setTitle(TITLE);
+		} catch (Exception e1) {
+			e1.printStackTrace();
+			window.setEnabled(true);
+		}
+	}
+	
+	public void saveDocument(File file) {
 		try {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			writer.write(textArea.getText());
 			writer.close();
+			openedFile = file;
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
@@ -449,7 +579,6 @@ public class Window {
 		console.addCaretListener(new CaretListener() {
 			@Override
 			public void caretUpdate(CaretEvent e) {
-				System.out.println(console.getCaretPosition() + " " + inputStart);
 				if(input.inputRequested() && console.getCaretPosition() < inputStart) {
 					console.setCaretPosition(inputStart);
 				}
