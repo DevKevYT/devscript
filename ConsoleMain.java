@@ -48,43 +48,49 @@ public class ConsoleMain {
 				initGUI = false;
 				continue;
 			}
-			System.out.println("Valid arguments are:\n-f | --file\tOpens the file in the editor (If --nogui is set, the file is executed)\n-e | --execute\tOpens the script with the editor (If --nogui is set, the script is executed)\n   | --nogui\tOpens the command line editor");
-			throw new IllegalArgumentException("Unknown argument " + args[i] );
+			throw new IllegalArgumentException("Unknown argument " + args[i] + "Valid arguments are:\n-f or --file\tOpens the file in the editor (If --nogui is set, the file is executed)\n-e or --execute\tOpens the script with the editor (If --nogui is set, the script is executed)\n--nogui\tOpens the command line editor");
 		}
 		
-		if(initGUI) {
-			Window w = new Window();
-			if(filePath != null) {
-				w.openDocument(new File(filePath));
-			} else if(scriptToExecute != null) {
-				w.setScript(scriptToExecute);
-			}
-		} else {
-			Process p = new Process(true);
-			p.addSystemOutput();
-			p.setInput(System.in);
-			
-			if(filePath != null) {
-				p.execute(new File(args[1]), true);
-			} else if(scriptToExecute != null) {
-				p.execute(args[1], true);
-			} else {
-				if(ConsoleMain.class.getResourceAsStream("/Editor.txt") == null) {
-					System.err.println("Editor file is missing at: " + URLDecoder.decode(ConsoleMain.class.getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8"));
-					return;
-				}
-				BufferedReader reader = new BufferedReader(new InputStreamReader(ConsoleMain.class.getResourceAsStream("/Editor.txt")));
-				String code  = "";
-				String line = reader.readLine();
-				while(line != null) {
-					code += line;
-					line = reader.readLine();
-				}
-				reader.close();
-				p.execute(code, false);
-				return;
-			}
-		}
+		System.out.println("InitGUI? " + initGUI + "\n" + "Script zo execute? " + scriptToExecute + "\nFilePath? " + filePath);
+		return;
+		//Apply rules
+		
+//		Process p = new Process(true);
+//		p.addSystemOutput();
+//		p.setInput(System.in);
+//
+//		if(args.length == 0) {
+//			if(ConsoleMain.class.getResourceAsStream("/Editor.txt") == null) {
+//				System.err.println("Editor file is missing at: " + URLDecoder.decode(ConsoleMain.class.getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8"));
+//				return;
+//			}
+//			BufferedReader reader = new BufferedReader(new InputStreamReader(ConsoleMain.class.getResourceAsStream("/Editor.txt")));
+//			String code  = "";
+//			String line = reader.readLine();
+//			while(line != null) {
+//				code += line;
+//				line = reader.readLine();
+//			}
+//			reader.close();
+//			p.execute(code, false);
+//			return;
+//		}
+//		
+//		if(args[0].equals("-e") || args[0].equals("--execute")) {
+//			if(args.length < 2) {
+//				System.err.println("Argument " + args[0] + " expects an executable script, e.g.: -e \"println \"Hello World;\"\"");
+//				System.exit(-1);
+//			}
+//			p.execute(args[1], true);
+//		} else if(args[0].equals("-f") || args[0].equals("--file")) {
+//			if(args.length < 2) {
+//				System.err.println("Argument " + args[0] + " expects a path to a text file containing the script");
+//				System.exit(-1);
+//			}
+//			p.execute(new File(args[1]), true);
+//		}  else if(args[0].equals("--gui") || args[0].equals("-g")) {
+//			new Window();
+//		}
 	}
 	
 	private static boolean isArgument(String arg) {

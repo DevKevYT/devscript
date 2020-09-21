@@ -4,6 +4,9 @@ import java.util.ArrayList;
 
 public class Block { //So stupid...
 	
+	public static final byte DONE = 0;
+	public static final byte ERROR = 1;
+	
 	public final StringBuilder blockCode;
 	public int executeIndex = 0;	//The current char index, that is executed or compiled. 0 < ExecuteIndex < blockCode.length() 
 	String currentCommand = "";
@@ -20,7 +23,7 @@ public class Block { //So stupid...
 	
 	public boolean loop = false;
 	ArrayList<Command> cached = new ArrayList<Command>(0);
-	
+	int exitCode = DONE;
 	
 	Block(StringBuilder blockCode, Block parent) {
 		this.blockCode = blockCode;

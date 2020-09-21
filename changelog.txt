@@ -5,6 +5,16 @@ NOTICE:
 	Another future plan: Command: "include <abs|rel> <pathToFile>" a command to include external compiled libraries "plug in style".
 	Added in 1.8.0 with the command: import "path_to_jar";
 	
+1.9.0:
+	- This big Update gives you an Editor GUI! It runs, if you run the program without arguments. However, if you specify arguments inside the
+	command line this will happen: -e or --execute: Loads this script into the editor. -f or --file Loads the file into the editor.
+	To launch the jar file without a GUI, you need to put an --nogui argument.
+	Example: java -jar devscript_1.9.0.jar --file "path_to_file" --nogui -> Executes the file inside the command line
+		 java -jar devscript_1.9.0.jar --execute "println foo;" -> Opens the editor window with "println foo;" as the content.
+	- Easier input setting. Before 1.9.0, it is very complicated to implement a custom InputStream. This update provides an abstract
+	  com.devscript.raw.ApplicationInput class, to make it easier to create inputs other than the System.in: process.setInput(new ApplicationInput() {...});
+	-
+	
 1.8.3:
 	- New Command: use [STRING]; This command replaces the location of the command with code from the given string as the first argument.
 	  This command is especially useful, if you want to include code from a separate file without creating a whole new library.
