@@ -32,7 +32,7 @@ In this big section, I will try to bring you near the usage and capabillities of
 ## Commands
 
 ### Data Types
-There are 6 main data types: _STRING, BOOLEAN, BLOCK, DICTIONARY, ARRAY, OBJECT_ (OBJECT is any Java object)<br>
+There are 6 main data types: _STRING, BOOLEAN, BLOCK, DICTIONARY, ARRAY, OBJECT_ (OBJECT is any java object, except the complex and primitive data types)<br>
 There are also 4 sub- data types: _ANY, ARRAY_ANY, INTEGER, FLOAT, CONTINUE_<br>
 Sub- data types are not considered as 'real' data types. They are only important in specific situations<br>
 
@@ -61,6 +61,10 @@ This is the same as:
   
 Commands can be combined with others with parantheses.
  >  println (1 + (4 / 2));
+ 
+ Note that if you want to use $null as a returned value, the program will throw an error, because $null is not accepted as argument,<br>
+ so the interpreter thinks this command has not arguments: use [STRING] != use
+ >  use (println "null?!")<br>Error at [println "null?!"] No such command use.
 
 ## Variables
 
@@ -73,7 +77,7 @@ And you can access them with a $ sign, followed by the variable name:
 
 ## Blocks
 Blocks are code, wrapped inside two curly braces { }.
-In theDevScript Language, blocks are treated as a data type [BLOCK]. Basically, a block only consists of a code String and
+In theDevScript Language, blocks are treated as a data type [BLOCK]. Basically, a block only consists of a String of code and
 their main goal is to provide functions.
 To define a function, you create a variable as usual (With the "=" command), since -as already mentioned- blocks are just data types and can get passed as command argument.
 > function = {<br>println "I am a function :)";<br>println "But how do you execute me?"<br>};
