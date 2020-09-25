@@ -16,13 +16,14 @@ p.addInput(System.in);
 p.execute("println \"Hello World\"", false);
 p.execute(new File("path_to_file"), true);
 ```
-You can also execute the script from the command line with the raw jar file.<br>
+You can also execute the script from the command line with the raw jar file and the argument --nogui.<br>
 This example will execute the command "version" and print the current version.
-> java -jar devscript_1.8.3.jar -e "version"
+> java -jar devscript_1.9.0.jar --nogui -e "version"
 
 Command line arguments are:<br>
 - -e or --execute <script> Executes a script right from the command line
 - -f or --file <pathToFile> Executes the contents of a text file
+- --nogui rejects the program to opem the GUI editor
 - If no argument is passed, the jar opens the default editor, stored in Editor.txt
 
 # Syntax
