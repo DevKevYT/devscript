@@ -23,8 +23,8 @@ This example will execute the command "version" and print the current version.
 Command line arguments are:<br>
 - -e or --execute <script> Executes a script right from the command line
 - -f or --file <pathToFile> Executes the contents of a text file
-- --nogui rejects the program to opem the GUI editor
-- If no argument is passed, the jar opens the default editor, stored in Editor.txt
+- --nogui rejects the program to open the GUI editor
+- If only --nogui is given, the jar opens the default editor, stored in Editor.txt
 
 # Syntax
 In this big section, I will try to bring you near the usage and capabillities of the DevScript, so you can use them for your own projects
