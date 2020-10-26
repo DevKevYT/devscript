@@ -11,8 +11,7 @@ Both input and outputs are the default System.in and System.out, but you can def
 
 ```java
 Process p = new Process(true);
-p.addSystemOutput();
-p.addInput(System.in);
+setInput(System.in);
 p.execute("println \"Hello World\"", false);
 p.execute(new File("path_to_file"), true);
 ```
