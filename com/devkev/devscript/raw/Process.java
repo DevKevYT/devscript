@@ -32,19 +32,19 @@ public class Process {
 	boolean breakRequested = false;
 	
 	public long maxRuntime = 0; //Runtime in ms. If < 0, runtime is infinite
-	private long start = 0;
-	public final String version = "1.9.0"; 
+	private long currentChar = 0;
+	public final String version = "1.9.1"; 
 	
 	/**The file, the script is executed from. May be null. Just useful for some Native commands*/
 	public File file = null;
 	
 	/**Coming soon*/
-	public boolean debug = false;
-	public volatile int commands_executed = 0;
-	public volatile long process_start = 0;
-	public volatile long process_end = 0;
-	public volatile int execution_time = 0;
-	public volatile float average_commands_per_sec = 0;
+//	public boolean debug = false;
+//	public volatile int commands_executed = 0;
+//	public volatile long process_start = 0;
+//	public volatile long process_end = 0;
+//	public volatile int execution_time = 0;
+//	public volatile float average_commands_per_sec = 0;
 	
 	public class GeneratedLibrary {
 		public final Command[] commands;
@@ -117,7 +117,7 @@ public class Process {
 				i--;
 			} else if(variables.get(i).block == null) variables.get(i).block = main;
 		}
-		start = System.currentTimeMillis();
+		currentChar = System.currentTimeMillis();
 		
 		process_id ++;
 		if(newThread) {
@@ -160,98 +160,103 @@ public class Process {
 	private void start(Block block) {
 		if(block == null) return;
 		
-		process_start = System.currentTimeMillis();
-		commands_executed = 0;
-		average_commands_per_sec = 0;
+//		process_start = System.currentTimeMillis();
+//		commands_executed = 0;
+//		average_commands_per_sec = 0;
 		aliveBlocks.add(block);
 		
 		//char[] arr = block.blockCode.toCharArray();
-		StringBuilder command = new StringBuilder();
+		StringBuilder command = block.blockCode;
 		
 		block.exitCode = Block.DONE;
 		block.alive = true;
+		block.executeIndex = 0;
 		block.interrupted = false;
 		if(!checkForInterrupt(block)) return;
 		
-		boolean inQuote = false;
-		boolean inComment = false;
-		short blockWrap = 0;
-		short arrayWrap = 0;
-		short paranthesisWrap = 0;
-		
-		short lStringWrap = 0;
-		
-		block.executeIndex = 0;
-		for(int i = 0; i < block.blockCode.length(); i++) {
-			block.executeIndex ++;
-			
-			char c = block.blockCode.charAt(i);
-			boolean ignore = false;
-			
-			if(c == Alphabet.LSTRING_0 && !inQuote) lStringWrap++;
-			else if(c == Alphabet.LSTRING_1 && !inQuote) lStringWrap--;
-			
-			if(lStringWrap == 0) {
-				if(c == Alphabet.STR_0 && !inQuote && (i > 0 ? block.blockCode.charAt(i-1) != Alphabet.ESCAPE : true)) inQuote = true;
-				else if(c == Alphabet.STR_0 && inQuote && (i > 0 ? block.blockCode.charAt(i-1) != Alphabet.ESCAPE : true)) inQuote = false;
-			
-				if(c == Alphabet.ARR_0 && !inQuote) arrayWrap++;
-				else if(c == Alphabet.ARR_1 && !inQuote) arrayWrap--;
-			
-				if(c == Alphabet.BRK_0 && !inQuote) paranthesisWrap++;
-				else if(c == Alphabet.BRK_1 && !inQuote) paranthesisWrap--;
-			
-				if(c == Alphabet.BLCK_0 && !inQuote) blockWrap++;
-				else if(c == Alphabet.BLCK_1 && !inQuote) blockWrap--;
-			
-				if(c == Alphabet.COMMENT && !inComment && !inQuote) inComment = true;
-				else if(c == Alphabet.COMMENT && inComment && !inQuote) {
-					inComment = false;
-					ignore = true;
-				}
-			}
-			
-			if(!inComment && !ignore && c != '\n') command.append(c);
-			
-			if(((c == Alphabet.BREAK || c == '\n') && !inQuote && blockWrap == 0 && lStringWrap == 0 && !inComment) || i >= block.blockCode.length()-1) {
-				if(command.toString().isEmpty() || command.length() == 1) continue;
-				block.currentCommand = command.toString();
-				if(inQuote) {
-					kill(block, "Syntax Error: Missing quote");
-					return;
-				} else if(blockWrap != 0) {
-					kill(block, "Syntax Error: Missing closing paranthesis");
-					return;
-				} else if(arrayWrap != 0) {
-					kill(block, "Syntax Error: Missing closing array paranthesis");
-					return;
-				} else if(inComment) {
-					kill(block, "Syntax Error: You may have forgot to close the comment quote (" + Alphabet.COMMENT + ")");
-					return;
-				} else if(paranthesisWrap != 0) {
-					kill(block, "Syntax Error: Missing or misplaced paranthesis");
-					return;
-				}
-				
-				if(command.charAt(command.length()-1) == Alphabet.BREAK) command.setLength(command.length() - 1);
-				if(command.length() == 0) continue;
-				
-				while(command.length() > 0) {
-					if(command.charAt(0) == ' ') {
-						command.deleteCharAt(0);
-						//block.blockCode.deleteCharAt(0);
-						//i++;
-					} else break;
-				}
-				
-				if(command.toString().isEmpty()) continue;
-				
-				executeCommand(command, block);
-				if(!checkForInterrupt(block)) break;
-				command.setLength(0);
-				//System.gc();
-			}
+		while(block.executeIndex < block.blockCode.length()-1 && block.alive) {
+			executeCommand(command, block.executeIndex, true, block);
 		}
+		
+//		boolean inQuote = false;
+//		boolean inComment = false;
+//		short blockWrap = 0;
+//		short arrayWrap = 0;
+//		short paranthesisWrap = 0;
+//		
+//		short lStringWrap = 0;
+//		
+//		block.executeIndex = 0;
+//		for(int i = 0; i < block.blockCode.length(); i++) {
+//			block.executeIndex ++;
+//			
+//			char c = block.blockCode.charAt(i);
+//			boolean ignore = false;
+//			
+//			if(c == Alphabet.LSTRING_0 && !inQuote) lStringWrap++;
+//			else if(c == Alphabet.LSTRING_1 && !inQuote) lStringWrap--;
+//			
+//			if(lStringWrap == 0) {
+//				if(c == Alphabet.STR_0 && !inQuote && (i > 0 ? block.blockCode.charAt(i-1) != Alphabet.ESCAPE : true)) inQuote = true;
+//				else if(c == Alphabet.STR_0 && inQuote && (i > 0 ? block.blockCode.charAt(i-1) != Alphabet.ESCAPE : true)) inQuote = false;
+//			
+//				if(c == Alphabet.ARR_0 && !inQuote) arrayWrap++;
+//				else if(c == Alphabet.ARR_1 && !inQuote) arrayWrap--;
+//			
+//				if(c == Alphabet.BRK_0 && !inQuote) paranthesisWrap++;
+//				else if(c == Alphabet.BRK_1 && !inQuote) paranthesisWrap--;
+//			
+//				if(c == Alphabet.BLCK_0 && !inQuote) blockWrap++;
+//				else if(c == Alphabet.BLCK_1 && !inQuote) blockWrap--;
+//			
+//				if(c == Alphabet.COMMENT && !inComment && !inQuote) inComment = true;
+//				else if(c == Alphabet.COMMENT && inComment && !inQuote) {
+//					inComment = false;
+//					ignore = true;
+//				}
+//			}
+//			
+//			if(!inComment && !ignore && c != '\n') command.append(c);
+//			
+//			if(((c == Alphabet.BREAK || c == '\n') && !inQuote && blockWrap == 0 && lStringWrap == 0 && !inComment) || i >= block.blockCode.length()-1) {
+//				if(command.toString().isEmpty() || command.length() == 1) continue;
+//				block.currentCommand = command.toString();
+//				if(inQuote) {
+//					kill(block, "Syntax Error: Missing quote");
+//					return;
+//				} else if(blockWrap != 0) {
+//					kill(block, "Syntax Error: Missing closing paranthesis");
+//					return;
+//				} else if(arrayWrap != 0) {
+//					kill(block, "Syntax Error: Missing closing array paranthesis");
+//					return;
+//				} else if(inComment) {
+//					kill(block, "Syntax Error: You may have forgot to close the comment quote (" + Alphabet.COMMENT + ")");
+//					return;
+//				} else if(paranthesisWrap != 0) {
+//					kill(block, "Syntax Error: Missing or misplaced paranthesis");
+//					return;
+//				}
+//				
+//				if(command.charAt(command.length()-1) == Alphabet.BREAK) command.setLength(command.length() - 1);
+//				if(command.length() == 0) continue;
+//				
+//				while(command.length() > 0) {
+//					if(command.charAt(0) == ' ') {
+//						command.deleteCharAt(0);
+//						//block.blockCode.deleteCharAt(0);
+//						//i++;
+//					} else break;
+//				}
+//				
+//				if(command.toString().isEmpty()) continue;
+//				
+//				executeCommand(command, block);
+//				if(!checkForInterrupt(block)) break;
+//				command.setLength(0);
+//				//System.gc();
+//			}
+//		}
 		
 		block.alive = false;
 		if(block.equals(main) && listener != null) listener.done(main.exitCode); 
@@ -270,7 +275,7 @@ public class Process {
 	}
 	
 	/**Interprets a command and its arguments*/
-	Object executeCommand(StringBuilder command, Block block) {
+	Object executeCommand(StringBuilder command, int startIndex, boolean updateExecuteIndex, Block block) {
 		if(!block.alive) return null;
 		
 		if(block.getStack() > 10) {
@@ -279,10 +284,11 @@ public class Process {
 		}
 		
 		block.currentCommand = command.toString();
-		ArrayList<Object> args = interpretArguments(command, block);
-		if(!block.alive) return null;
+		ArrayList<Object> args = interpretArguments(command, startIndex, updateExecuteIndex, block);
+		if(args == null) return null;
+		if(!block.alive || args.isEmpty()) return null;
 		if(maxRuntime > 0) {
-			if(System.currentTimeMillis() - start > maxRuntime) {
+			if(System.currentTimeMillis() - currentChar > maxRuntime) {
 				kill(block, "Process passed max runtime. Aborting");
 				return null;
 			}
@@ -317,7 +323,7 @@ public class Process {
 						if(accepted) {
 							try {
 								args.remove(c.commandNameOffset);
-								commands_executed++;
+								//commands_executed++;
 								return c.execute(args.toArray(new Object[args.size()]), this, block);
 							} catch (Exception e) {
 								kill(block, "Failed to execute command " + c.name + ": ");
@@ -358,7 +364,7 @@ public class Process {
 								try {
 									args.remove(c.commandNameOffset);
 									if(addToBlockCache) block.addToCache(c);
-									commands_executed++;
+									//commands_executed++;
 									return c.execute(args.toArray(new Object[args.size()]), this, block);
 								} catch (Exception e) {
 									kill(block, "Failed to execute command " + c.name + " (" + e.toString() + ")");
@@ -373,25 +379,45 @@ public class Process {
 		 String argsString = "";
 		 for(Object d : args) argsString +=  (d instanceof Array ? "@" : "") + d.toString() + " ";
 		 kill(block,"No such command: " +  (argsString.isEmpty() ? "[null]" : argsString));
-		 process_end = System.currentTimeMillis();
-		 execution_time = (int) (process_end - process_start);
-		 if(debug) {
-			 log("Debug report:\n\tExecution time: " + execution_time + "(" + (float) execution_time/1000f + " sec)\n\t"
-			 		+ "Commands executed: " + commands_executed + "\n\t"
-			 		+ "Average commands per second:  " + average_commands_per_sec + " commands/sec", true);
-		 }
+//		 process_end = System.currentTimeMillis();
+//		 execution_time = (int) (process_end - process_start);
+//		 if(debug) {
+//			 log("Debug report:\n\tExecution time: " + execution_time + "(" + (float) execution_time/1000f + " sec)\n\t"
+//			 		+ "Commands executed: " + commands_executed + "\n\t"
+//			 		+ "Average commands per second:  " + average_commands_per_sec + " commands/sec", true);
+//		 }
 		 return null;
 	}
 	
-	ArrayList<Object> interpretArguments(StringBuilder command, Block block) {
+	/**Breaks the arguments, when a ; is encountered*/
+	ArrayList<Object> interpretArguments(StringBuilder command, int start, boolean updateIndex, Block block) {
 		if(!checkForInterrupt(block)) return null;
 		
 		ArrayList<Object> args = new ArrayList<>(1);
-				
-		for(int i = 0; i < command.length(); i++) {
+		
+		for(int i = start; i < command.length(); i++) {
+			if(updateIndex) block.executeIndex = i;
 			char current = command.charAt(i);
-			if(current == ' ') continue;
-			if(current == Alphabet.LSTRING_0) {
+
+			if(current == ' ') {
+				if(updateIndex) block.executeIndex = i+1;
+				continue;
+			}
+			if(current == Alphabet.BREAK || current == Alphabet.BLCK_1) {
+				if(updateIndex) block.executeIndex = i+1;
+				return args;
+			}
+			
+			if(current == Alphabet.COMMENT) {
+				String subsequence = findMatching(command.toString(), i, 0, Alphabet.COMMENT, Alphabet.COMMENT, Alphabet.ESCAPE, false);
+				if(subsequence == null) {
+					kill(block, "");
+					return null;
+				}
+				
+				i += subsequence.length() + 1;
+				
+			} else if(current == Alphabet.LSTRING_0) {
 				String subsequence = findMatching(command.toString(), i, 0, Alphabet.LSTRING_0, Alphabet.LSTRING_1, Alphabet.ESCAPE, false);
 				//Now, only remove \ near < and >
 				if(subsequence == null) {
@@ -413,7 +439,7 @@ public class Process {
 					kill(block, "Wtf you doing?!");
 					return null;
 				}
-				Object returned = executeCommand(new StringBuilder(subCommand), block);
+				Object returned = executeCommand(new StringBuilder(subCommand), 0, false, block);
 				if(!checkForInterrupt(block)) return null;
 				if(returned != null) args.add(returned);
 				i += subCommand.length() + 1;
@@ -426,13 +452,13 @@ public class Process {
 				for(int j = i+1; j < command.length(); j++, i++) {
 					char c = command.charAt(j);
 					
-					if(c == ' ' || c == Alphabet.BLCK_0 || c == Alphabet.BREAK || c == Alphabet.BRK_0 || c == Alphabet.STR_0 || c == Alphabet.BRK_1) break;
+					if(c == ' ' || c == Alphabet.BLCK_0 || c == Alphabet.BREAK || c == Alphabet.BRK_0 || c == Alphabet.STR_0 || c == Alphabet.BRK_1) break;					
 					
 					if(c == Alphabet.ARR_0) {
 						String index = findMatching(command.toString(), j, 0, Alphabet.ARR_0, Alphabet.ARR_1, Alphabet.ESCAPE, true);
 						indexChain.add(index);
 						j += index.length();
-						i = j;
+						i = j-1;
 						atIndex = true;
 					}
 					
@@ -448,10 +474,27 @@ public class Process {
 				if(!indexChain.isEmpty()) {
 					
 					for(String s : indexChain) {
-						Object index = interpretArguments(new StringBuilder(s), block).get(0);
+						ArrayList<Object> indexArgument = interpretArguments(new StringBuilder(s), 0, false, block);
+						
+						if(indexArgument == null) {
+							kill(block, "Error trying to fetch array index (Caused by previous error)");
+							return null;
+						}
+						
+						if(indexArgument.isEmpty()) {
+							kill(block, "Error trying to fetch array index (Empty statement)");
+							return null;
+						}
+						
+						Object index = indexArgument.get(0);
 						
 						if(!(variableValue instanceof Array)) {
 							kill(block, "Trying to get index from a non-array value");
+							return null;
+						}
+						
+						if(index == null) {
+							kill(block, "Index must be an integer");
 							return null;
 						}
 						
@@ -474,7 +517,7 @@ public class Process {
 			} else if(current == Alphabet.ARR_0) {
 				String array = findMatching(command.toString(), i, 0, Alphabet.ARR_0, Alphabet.ARR_1, Alphabet.ESCAPE, true);
 				Array arrayData = new Array();
-				ArrayList<Object> indexes = interpretArguments(new StringBuilder(array), block);
+				ArrayList<Object> indexes = interpretArguments(new StringBuilder(array), 0, false, block);
 				if(!block.alive || block.interrupted) return null;
 				for(Object object : indexes) arrayData.push(object);
 						
@@ -488,11 +531,32 @@ public class Process {
 				i += blockCode.length() + 1;
 			
 			} else if(current != ' ') {
-				String subsequence = command.indexOf(" ", i) == -1 ? command.substring(i) : command.substring(i, command.indexOf(" ", i));
-				args.add(subsequence);
-				i += subsequence.length();
+				
+				StringBuilder sequence = new StringBuilder();
+				b: for(int j = i; j < command.length(); j++) { //Break this string by any alphabet char -> Otherwise surround string with "
+					char  c = command.charAt(j);
+					if(!Alphabet.partOf(c) && c != ' ') {
+						sequence.append(c);
+						if(j+1 < command.length()) {
+							char next = command.charAt(j+1);
+							if(Alphabet.partOf(next) || next == ' ') {
+								i--;
+								break b;
+							}
+						} else {
+							i--;
+							break b;
+						}
+					} else break b;
+				}
+				if(sequence.length() > 0) {
+					args.add(sequence.toString());
+					i += sequence.length();
+				}				
 			}
+			if(updateIndex) block.executeIndex = i;
 		}
+		//System.out.println("End command with arguments: " + args);
 		return args;
 	}
 	
@@ -663,7 +727,7 @@ public class Process {
 			if (block.currentCommand.length() > 30) {
 				block.currentCommand = block.currentCommand.subSequence(0, 10) + " ... " + block.currentCommand.substring(block.currentCommand.length() - 10, block.currentCommand.length());
 			}
-			error("Error at [" + block.currentCommand + "]> " + errorMessage);
+			if(!errorMessage.isEmpty()) error("Error at [" + block.currentCommand + "]> " + errorMessage);
 		
 			for(Block b : aliveBlocks) {
 				b.cached.clear();

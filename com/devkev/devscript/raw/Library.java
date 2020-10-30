@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 public abstract class Library {
 
-	public final String COMPATIBLE_VERSION = "1.8.1";
+	public final String COMPATIBLE_VERSION = "1.9.1";
     private final ArrayList<Command> collection = new ArrayList<Command>();
     private String name = "";
     

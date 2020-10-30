@@ -22,8 +22,14 @@ public class Block { //So stupid...
 	private byte stack = 0;
 	
 	public boolean loop = false;
-	ArrayList<Command> cached = new ArrayList<Command>(0);
+	ArrayList<Command> cached = new ArrayList<>();
+//	ArrayList<CompiledCommand> compiled = new ArrayList<CompiledCommand>(0);
 	int exitCode = DONE;
+	
+	class CompiledCommand {
+		Command command;
+		ArrayList<Object> args;
+	}
 	
 	Block(StringBuilder blockCode, Block parent) {
 		this.blockCode = blockCode;
@@ -57,12 +63,18 @@ public class Block { //So stupid...
 	
 	public void endLoop(boolean clearcache) {
 		loop = false;
-		clearCache();
 	}
 	
 	public synchronized boolean isAlive() {
 		return alive;
 	}
+	
+//	public void addCompiledCommand(Command command, ArrayList<Object> args) {
+//		CompiledCommand c = new CompiledCommand();
+//		c.args = args;
+//		c.command = command;
+//		compiled.add(c); //Index would be the "line"
+//	}
 	
 	void addToCache(Command c) {
 		for(int i = 0; i < cached.size(); i++) {

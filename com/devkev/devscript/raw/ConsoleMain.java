@@ -63,7 +63,7 @@ public class ConsoleMain {
 			Process p = new Process(true);
 			p.addSystemOutput();
 			p.setInput(System.in);
-			
+
 			if(filePath != null) {
 				p.execute(new File(args[1]), true);
 			} else if(scriptToExecute != null) {
