@@ -5,6 +5,17 @@ NOTICE:
 	Another future plan: Command: "include <abs|rel> <pathToFile>" a command to include external compiled libraries "plug in style".
 	Added in 1.8.0 with the command: import "path_to_jar";
 	
+1.9.3:
+	Added an application listener to fire when the script finishes.
+	Example:
+	
+	onexit = {
+		println "Program finished";
+	};
+	
+	The script will now print "Program finished" once it -well- finishes.
+	This function needs to be placed in the main function.
+	Useful if you want to work with sockets.
 1.9.0:
 	- This big Update gives you an Editor GUI! It runs, if you run the program without arguments. However, if you specify arguments inside the
 	command line this will happen: -e or --execute: Loads this script into the editor. -f or --file Loads the file into the editor.
