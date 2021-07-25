@@ -679,6 +679,9 @@ public class NativeLibrary extends Library {
 						if(args.length == 0) {
 							application.log(String.format("%-40s%s", "SYNTAX EXAMPLE", "DESCRIPTION"), true);
 							application.log("", true);
+							application.log("Listeners", true);
+							application.log("onexit = {};  Fires when the application is finished. Useful for closing sockets etc.", true);
+							application.log("", true);
 							int maxLength = 0;
 							for(GeneratedLibrary lib : application.getLibraries()) {
 								application.log("\nLIBRARY: '" + lib.name + "' (" + lib.commands.length + (lib.commands.length > 1 ? " commands)\n" : " command)\n"), true);

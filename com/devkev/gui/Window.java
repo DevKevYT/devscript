@@ -72,7 +72,7 @@ public class Window {
 	
 	private static Font font;
 	private File openedFile = null; //Null means, creating a new file when saving.
-	private static final String TITLE = "Devscript 1.9.0 Editor (Alpha)";
+	private static final String TITLE = "Devscript 1.9.3 Editor ";
 	private ArrayList<String> history = new ArrayList<String>();
 	private int historyIndex = 0;
 	public int maxHistorySize = 50;

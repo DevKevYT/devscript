@@ -258,8 +258,19 @@ public class Process {
 //			}
 //		}
 		
+		//Searches for a variable called onexit with the type BLOCK
+	
+		
+		
+		if(block.equals(main) && listener != null) {
+			Object exitFunction = getVariable("onexit", null);
+
+			if(exitFunction != null) 
+				executeBlock(((Block) exitFunction), true);
+			
+			listener.done(main.exitCode); 
+		}
 		block.alive = false;
-		if(block.equals(main) && listener != null) listener.done(main.exitCode); 
 		aliveBlocks.remove(block);
 	}
 	
