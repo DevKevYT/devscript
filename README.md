@@ -49,9 +49,11 @@ Example for the command println:
   - This command expects strings without limitation in number: _println [STRING] [CONTINUE]_ and returns $null, that means nothing.
   > println "Hello World" "And another line";
 
-Command names can also be shifted, like the _[string] + [string]_ command to make the code more readable:
-  >  1 + 1;
-  
+Command names can also be shifted, like the _[string] + [string]_ command to make the code more readable.
+So, instead of writing + 1 1 ('+' or 'add' being the command here) we can shift the command one section to the right:
+  >  1 + 1; <- Better to read and write!
+
+This command returns the sum of its two arguments.
 But this command alone does not do very much. How do you use the new, returned value?
 Look at this example:
   >  println (1 + 1); 
@@ -62,7 +64,7 @@ This is the same as:
 Commands can be combined with others with parantheses.
  >  println (1 + (4 / 2));
  
- Note that if you want to use $null as a returned value, the program will throw an error, because $null is not accepted as argument,<br>
+ Note that if you want to use $null as a returned value, the program will throw an error, because $null is not interpreted as argument,<br>
  so the interpreter thinks this command has not arguments: use [STRING] != use
  >  use (println "null?!")<br>Error at [println "null?!"] No such command use.
 
