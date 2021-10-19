@@ -32,7 +32,7 @@ In this big section, I will try to bring you near the usage and capabillities of
 ## Commands
 
 ### Data Types
-There are 6 main data types: _STRING, BOOLEAN, BLOCK, DICTIONARY, ARRAY, OBJECT_ (OBJECT is any java object, except the complex and primitive data types)<br>
+There are 6 main data types: _STRING, BOOLEAN, BLOCK, DICTIONARY, ARRAY, OBJECT_ (OBJECT is any java object, except the primitive data types)<br>
 There are also 4 sub- data types: _ANY, ARRAY_ANY, INTEGER, FLOAT, CONTINUE_<br>
 Sub- data types are not considered as 'real' data types. They are only important in specific situations<br>
 
