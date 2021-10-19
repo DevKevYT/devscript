@@ -4,7 +4,7 @@ A script inside Java for developing and debugging
 # Implementation
 
 Just copy the Code into your project or import the downloadable .jar (under "releases") file to your build path and you are done!<br>
-DevScript does not use any unnessecary external libraries.
+DevScript does not use any unnessecary 3rd party libraries.
 
 Basic syntax to execute a "Hello World" script as a string inside your program:
 Both input and outputs are the default System.in and System.out, but you can define your own.
