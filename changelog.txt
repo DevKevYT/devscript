@@ -39,7 +39,7 @@ NOTICE:
 	
 1.8.2:
 	Fixed issues with the commands: <, <=, >, >= that contain the "long string" braces: <>
-	The following commands have been changed (similar to linux):
+	The following commands have been changed (similar to bash):
 		<	"lt" (less than)
 		>	"gt" (grater than)
 		<= 	"lteq" (less than and equal)
