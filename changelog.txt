@@ -4,6 +4,10 @@ NOTICE:
 	the boolean "useCache" (constructor) is still useless, the command cache will be added in future updates to make the script even faster.
 	Another future plan: Command: "include <abs|rel> <pathToFile>" a command to include external compiled libraries "plug in style".
 	Added in 1.8.0 with the command: import "path_to_jar";
+
+1.9.4:
+	Added linux and mac Support for the "exec" Command.
+	This command can now execute Shell commands on a linux or mac os device.
 	
 1.9.3:
 	Added an application listener to fire when the script finishes.
@@ -24,7 +28,6 @@ NOTICE:
 		 java -jar devscript_1.9.0.jar --execute "println foo;" -> Opens the editor window with "println foo;" as the content.
 	- Easier input setting. Before 1.9.0, it is very complicated to implement a custom InputStream. This update provides an abstract
 	  com.devscript.raw.ApplicationInput class, to make it easier to create inputs other than the System.in: process.setInput(new ApplicationInput() {...});
-	-
 	
 1.8.3:
 	- New Command: use [STRING]; This command replaces the location of the command with code from the given string as the first argument.
