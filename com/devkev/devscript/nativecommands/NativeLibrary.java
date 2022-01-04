@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.InputStreamReader;
 import java.net.URLDecoder;
 import java.util.Random;
 
@@ -154,9 +155,41 @@ public class NativeLibrary extends Library {
 				
 				new Command("exec", "string", "Executes a shell command") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						new ProcessBuilder("cmd", "/c", args[0].toString()).inheritIO().start().waitFor();
+					String OS = System.getProperty("os.name", "generic").toLowerCase();
+						
+					if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
+				    	//mac
+						ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", args[0].toString());
+						java.lang.Process process = builder.start();
+						BufferedReader reader =  new BufferedReader(new InputStreamReader(process.getInputStream()));
+						String line = null;
+						while ( (line = reader.readLine()) != null) {
+							application.log(line, true);
+						}
+						
+					} else if (OS.indexOf("win") >= 0) {
+						//windows
+						ProcessBuilder builder = new ProcessBuilder("cmd", "/c", args[0].toString());
+						java.lang.Process process = builder.start();
+						BufferedReader reader =  new BufferedReader(new InputStreamReader(process.getInputStream()));
+						String line = null;
+						while ( (line = reader.readLine()) != null) {
+							application.log(line, true);
+						}
+					} else if (OS.indexOf("nux") >= 0) {
+						//linux
+						ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", args[0].toString());
+						java.lang.Process process = builder.start();
+						BufferedReader reader =  new BufferedReader(new InputStreamReader(process.getInputStream()));
+						String line = null;
+						while ( (line = reader.readLine()) != null) {
+							application.log(line, true);
+						}
+						
+					} else application.error("Failed to determine operating system");
 						return null;
 					}
+					
 				},
 				
 				new Command("script", "string", "Executes a new script sub-process with its parent in- and outputs") {
