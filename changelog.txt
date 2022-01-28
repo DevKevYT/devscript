@@ -6,7 +6,7 @@ NOTICE:
 	Added in 1.8.0 with the command: import "path_to_jar";
 
 1.9.6:
-	- Added error stream eo "exec" command
+	- Added error stream to "exec" command
 	
 1.9.5:
 	- Added optional "setup(Process process)" function to libraries. Fired once, when the library is imported. When a process is running. Useful to set up listeners etc.
