@@ -5,6 +5,15 @@ NOTICE:
 	Another future plan: Command: "include <abs|rel> <pathToFile>" a command to include external compiled libraries "plug in style".
 	Added in 1.8.0 with the command: import "path_to_jar";
 
+1.9.6:
+	- Added error stream eo "exec" command
+	
+1.9.5:
+	- Added optional "setup(Process process)" function to libraries. Fired once, when the library is imported. When a process is running. Useful to set up listeners etc.
+	- Added "executeEventFunction()" to libraries. Use this function to fire funtions in a running process.
+	- Fixed bug where the Process would throw an error if you tried to import custom libraries with the "import" command
+	- Custom Libraries can now only have one Process attacted which is now accessible in CustomLibrary not only through commands anymore.
+
 1.9.4:
 	Added linux and mac Support for the "exec" Command.
 	This command can now execute Shell commands on a linux or mac os device.
