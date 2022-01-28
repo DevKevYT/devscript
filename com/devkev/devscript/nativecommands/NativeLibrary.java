@@ -19,7 +19,7 @@ import com.devkev.devscript.raw.Dictionary;
 import com.devkev.devscript.raw.Library;
 import com.devkev.devscript.raw.Output;
 import com.devkev.devscript.raw.Process;
-import com.devkev.devscript.raw.Process.GeneratedLibrary;
+import com.devkev.devscript.raw.Process.HookedLibrary;
 import com.devkev.devscript.raw.ApplicationBuilder.Type;
 
 public class NativeLibrary extends Library {
@@ -153,7 +153,7 @@ public class NativeLibrary extends Library {
 					}
 				},
 				
-				new Command("exec", "string", "Executes a shell command") {
+				new Command("exec", "string", "Executes a shell command. Output only and limited to one command.") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 					String OS = System.getProperty("os.name", "generic").toLowerCase();
 						
@@ -161,30 +161,61 @@ public class NativeLibrary extends Library {
 				    	//mac
 						ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", args[0].toString());
 						java.lang.Process process = builder.start();
+						
 						BufferedReader reader =  new BufferedReader(new InputStreamReader(process.getInputStream()));
 						String line = null;
 						while ( (line = reader.readLine()) != null) {
 							application.log(line, true);
 						}
+						reader.close();
+
+						BufferedReader errorReader =  new BufferedReader(new InputStreamReader(process.getErrorStream()));
+						line = null;
+						while ( (line = errorReader.readLine()) != null) {
+							application.log(line, true);
+						}
+						errorReader.close();
+						process.destroy();
 						
 					} else if (OS.indexOf("win") >= 0) {
 						//windows
 						ProcessBuilder builder = new ProcessBuilder("cmd", "/c", args[0].toString());
 						java.lang.Process process = builder.start();
+
 						BufferedReader reader =  new BufferedReader(new InputStreamReader(process.getInputStream()));
 						String line = null;
 						while ( (line = reader.readLine()) != null) {
 							application.log(line, true);
 						}
+						reader.close();
+
+						BufferedReader errorReader =  new BufferedReader(new InputStreamReader(process.getErrorStream()));
+						line = null;
+						while ( (line = errorReader.readLine()) != null) {
+							application.log(line, true);
+						}
+						errorReader.close();
+						process.destroy();
+						
 					} else if (OS.indexOf("nux") >= 0) {
 						//linux
 						ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", args[0].toString());
 						java.lang.Process process = builder.start();
+						
 						BufferedReader reader =  new BufferedReader(new InputStreamReader(process.getInputStream()));
 						String line = null;
 						while ( (line = reader.readLine()) != null) {
 							application.log(line, true);
 						}
+						reader.close();
+
+						BufferedReader errorReader =  new BufferedReader(new InputStreamReader(process.getErrorStream()));
+						line = null;
+						while ( (line = errorReader.readLine()) != null) {
+							application.log(line, true);
+						}
+						errorReader.close();
+						process.destroy();
 						
 					} else application.error("Failed to determine operating system");
 						return null;
@@ -716,7 +747,7 @@ public class NativeLibrary extends Library {
 							application.log("onexit = {};  Fires when the application is finished. Useful for closing sockets etc.", true);
 							application.log("", true);
 							int maxLength = 0;
-							for(GeneratedLibrary lib : application.getLibraries()) {
+							for(HookedLibrary lib : application.getLibraries()) {
 								application.log("\nLIBRARY: '" + lib.name + "' (" + lib.commands.length + (lib.commands.length > 1 ? " commands)\n" : " command)\n"), true);
 								for(Command c : lib.commands) {
 									String example = "";
@@ -764,6 +795,9 @@ public class NativeLibrary extends Library {
 							Class<?> pluginClass = loader.loadClass("CustomLibrary");
 							
 							lib = (Library) pluginClass.getConstructor().newInstance();
+							lib.bound = application;
+							lib.scriptImport(application);
+							
 						} catch(Exception e) {
 							application.kill(block, "Java error occurred, while importing library: " + e.toString());
 							return null;
@@ -900,4 +934,9 @@ public class NativeLibrary extends Library {
 		};
 	}
 
+	@Override
+	public void scriptImport(Process process) {}
+
+	@Override
+	public void scriptExit(Process process, int exitCode, String errorMessage) {}
 }

@@ -14,7 +14,7 @@ public class Process {
 
 	private static long process_id = 0L;
 	
-	private ArrayList<GeneratedLibrary> libraries = new ArrayList<GeneratedLibrary>();
+	private ArrayList<HookedLibrary> libraries = new ArrayList<HookedLibrary>();
 	private ArrayList<Output> output = new ArrayList<Output>(1); 
 	private ArrayList<Variable> variables = new ArrayList<Variable>(5);
 	private ApplicationListener listener;
@@ -33,7 +33,7 @@ public class Process {
 	
 	public long maxRuntime = 0; //Runtime in ms. If < 0, runtime is infinite
 	private long currentChar = 0;
-	public final String version = "1.9.1"; 
+	public final String version = "1.9.6"; 
 	
 	/**The file, the script is executed from. May be null. Just useful for some Native commands*/
 	public File file = null;
@@ -46,11 +46,14 @@ public class Process {
 //	public volatile int execution_time = 0;
 //	public volatile float average_commands_per_sec = 0;
 	
-	public class GeneratedLibrary {
+	public class HookedLibrary {
+		
 		public final Command[] commands;
 		public final String name;
+		public final Library lib;
 		
-		public GeneratedLibrary(Library library) {
+		public HookedLibrary(Library library) {
+			this.lib = library;
 			this.commands = library.createLib();
 			this.name = library.getName();
 		}
@@ -94,9 +97,20 @@ public class Process {
 	 * If you don't want these native commands, call {@link Process#clearLibraries()} before adding your custom ones*/
 	public Process(boolean useCache) {
 		includeLibrary(new NativeLibrary());
+		
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+			@Override
+			public void run() {
+				//Cant execute onexit function. Just execute the library listener
+				if(isRunning())
+					kill(main, "JVM killed");
+			}
+		}));
 	}
 	
 	public Thread execute(String script, boolean newThread) {
+		finalizing = false;
+		
 		if(main != null) {
 			if(main.alive) {
 				warning("Java Environment was trying to start a new process, while its already running");
@@ -259,16 +273,8 @@ public class Process {
 //		}
 		
 		//Searches for a variable called onexit with the type BLOCK
-	
-		
-		
-		if(block.equals(main) && listener != null) {
-			Object exitFunction = getVariable("onexit", null);
-
-			if(exitFunction != null) 
-				executeBlock(((Block) exitFunction), true);
-			
-			listener.done(main.exitCode); 
+		if(main == block) {
+			finalizeExit(0, "finished");
 		}
 		block.alive = false;
 		aliveBlocks.remove(block);
@@ -349,7 +355,7 @@ public class Process {
 			addToBlockCache = true;
 		}
 		
-		for(GeneratedLibrary lib : libraries) {
+		for(HookedLibrary lib : libraries) {
 			for(Command c : lib.commands) {
 					if(c.commandNameOffset >= args.size()) continue;
 					
@@ -648,9 +654,10 @@ public class Process {
 				if(stack1 <= stack2) {
 					if(!v.FINAL) {// || v.permanent) {
 						if(!v.setValue(value, getMain() == null)) kill(block, "Failed to assign type " + value + " to existing variable " + v.value);
-					} else if(getMain() != null) {
-						kill(block,"Tried to modyfy a constant: " + name);
 					}
+					//} else if(v.FINAL && getMain() != null) {
+					//	kill(block,"Tried to modyfy a constant: " + name);
+					//}
 					return;
 				}
 			}
@@ -679,7 +686,12 @@ public class Process {
 	}
 	
 	public void includeLibrary(Library lib) {
-		libraries.add(new GeneratedLibrary(lib));
+		if(lib.bound != null) {
+			if(lib.bound != this) {
+				throw new IllegalAccessError("This Library instance is already part of a different process. Try creating a new one: includeLibrary(new Library())");
+			}
+		}
+		libraries.add(new HookedLibrary(lib));
 	}
 	
 	public void clearLibraries() {
@@ -719,12 +731,12 @@ public class Process {
 			});
 	}
 	
-	public ArrayList<GeneratedLibrary> getLibraries() {
+	public ArrayList<HookedLibrary> getLibraries() {
 		return libraries;
 	}
 	
-	public GeneratedLibrary getLibrary(String name) {
-		for(GeneratedLibrary lib : libraries) {
+	public HookedLibrary getLibrary(String name) {
+		for(HookedLibrary lib : libraries) {
 			if(lib.name.equals(name)) return lib;
 		}
 		return null;
@@ -739,15 +751,19 @@ public class Process {
 				block.currentCommand = block.currentCommand.subSequence(0, 10) + " ... " + block.currentCommand.substring(block.currentCommand.length() - 10, block.currentCommand.length());
 			}
 			if(!errorMessage.isEmpty()) error("Error at [" + block.currentCommand + "]> " + errorMessage);
-		
-			for(Block b : aliveBlocks) {
-				b.cached.clear();
-				b.alive = false;
-				b.interrupted = true;
+			
+			finalizeExit(1, errorMessage);
+			
+			for(int i = 0; i < aliveBlocks.size(); i++) {
+				aliveBlocks.get(i).cached.clear();
+				aliveBlocks.get(i).alive = false;
+				aliveBlocks.get(i).interrupted = true;
 			}
 			block.alive = false;
 			block.interrupted = true;
 			block.currentCommand = "";
+			
+			//System.out.println("Cleaning stack ...");
 		}
 		
 		block.exitCode = Block.ERROR;
@@ -817,6 +833,7 @@ public class Process {
 		return inputReader.readLine();
 	}
 	
+	/**You can use {@link ApplicationInput}*/
 	public void setInput(InputStream input) {
 		if(input == null) return;
 		
@@ -889,5 +906,31 @@ public class Process {
 			prev = current;
 		}
 		return null;
+	}
+	
+	boolean finalizing = false;
+	
+	private void finalizeExit(int exitCode, String errorMessage) {
+		if(!finalizing) return;
+		
+		finalizing = true;
+		
+		Object exitFunction = getVariable("onexit", null);
+		
+		if(exitFunction != null) 
+			executeBlock(((Block) exitFunction), true, exitCode, errorMessage);
+		
+		for(HookedLibrary lib : libraries) {
+			lib.lib.scriptExit(this, exitCode, errorMessage);
+		}
+	}
+	
+	@Override
+	protected void finalize() throws Throwable {
+		finalizeExit(1, "JVM Killed");
+		
+		if(listener != null) {
+			listener.done(main.exitCode); 
+		}
 	}
 }

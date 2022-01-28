@@ -9,7 +9,7 @@ import java.net.URLDecoder;
 import com.devkev.gui.Window;
 
 /**@author Philipp Gersch
- * @version 1.8.2 (stable)
+ * @version 1.9.6 (stable)
  * Valid arguments are: <br>-e or --execute [some code] - Executes the String<br>
  * -f or --file [path] - Reads the file and executes the code from it.<br>
  * If no argument was passed, the default Editor GUI will open.*/
