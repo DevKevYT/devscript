@@ -2,12 +2,13 @@ package com.devkev.devscript.raw;
 
 
 import java.util.ArrayList;
-import static com.devkev.devscript.raw.ApplicationBuilder.panic;
+import static com.devkev.devscript.raw.ProcessUtils.panic;
 
-import com.devkev.devscript.raw.ApplicationBuilder.Type;
+import com.devkev.devscript.raw.ProcessUtils.Type;
 
 public abstract class Command {
-    public String name;
+    
+	public String name;
     public String description;
     public String argumentsAsString;
     public DataType[] arguments;  
@@ -18,6 +19,7 @@ public abstract class Command {
     public static final int MAX_NAME_LENGTH = 20;
     public int commandNameOffset = 0;
     
+    private Property[] properties = new Property[] {};
     private boolean repeated = false; //If the ... argument type was used
     
     public static final String ARRAY_INDICATOR = "@";
@@ -27,21 +29,30 @@ public abstract class Command {
     	String description;
     }
     
-    /**@param name - The name of the command. (Only digits and characters are allowed)
+    /**@param name - The name of the command.
      * @param Arguments as DataTypes read the manual for syntax"
      * @param usage - A short description of the command and the argument use.*/
     public Command(String name, String arguments, String usage) {
     	init(name, arguments, usage, 0);
     }
     
-    /**Arguments: the data types separated with a space character. use @ at start or end of argument to only accept arrays of the specified type.
-     * "string @string" or "? @?" You can look up all DataTypes and their meaning at {@link ApplicationBuilder.Type} */
-    public Command(String name, String arguments, String usage, int commandNameOffset) {
-    	init(name, arguments, usage, commandNameOffset);
+    /**@param name - The name of the command.
+     * @param Arguments as DataTypes read the manual for syntax"
+     * @param usage - A short description of the command and the argument use.
+     * @param args - Allows for additional custom properties for the command. For example limit execution rights.*/
+    public Command(String name, String arguments, String usage, Property ... settingsArgs) {
+    	init(name, arguments, usage, 0, settingsArgs);
     }
     
-    private void init(String name, String arguments, String usage, int nameOffset) {
-    	if(name.length() < MIN_NAME_LENGTH) panic("Command names need to have at least " + MIN_NAME_LENGTH + " characters!");
+    /**Arguments: the data types separated with a space character. use @ at start or end of argument to only accept arrays of the specified type.
+     * "string @string" or "? @?" You can look up all DataTypes and their meaning at {@link ProcessUtils.Type}
+     * @param args - Allows for additional custom arguments for the command. For example limit execution rights.*/
+    public Command(String name, String arguments, String usage, int commandNameOffset, Property ... settingsArgs) {
+    	init(name, arguments, usage, commandNameOffset, settingsArgs);
+    }
+    
+    private void init(String name, String arguments, String usage, int nameOffset, Property ... settingsArgs) {
+    	if(name.length() < MIN_NAME_LENGTH) panic("Command names need to have at least " + MIN_NAME_LENGTH + " character(s)!");
         if(name.length() >= MAX_NAME_LENGTH) panic("Command names need to have less than " + MIN_NAME_LENGTH + " characters!");
         if(Alphabet.partOf(name) && (!name.contains("<") && !name.contains(">")) || name.contains(" ")) panic("Command '" + name + "' contains illegal/reserved characters!");
         
@@ -51,17 +62,6 @@ public abstract class Command {
         arguments = prepare(arguments.toLowerCase());
         ArrayList<DataType> args = new ArrayList<DataType>();
         if(!arguments.isEmpty() && !arguments.contains(Type.NULL.typeName)) {
-//        	int lastArgument = 0;
-//        	for(int i = 0; i < arguments.length(); i++) {
-//        		if(arguments.charAt(i) == Alphabet.BLCK_0 && i > 0) {
-//        			String description = Process.findMatching(arguments, i, 0, '{', '}', Alphabet.ESCAPE, true);  //If description was found: command right after first bracket
-//        			if(description.equals(arguments)) description = "Syntax Error";
-//        			String argType = arguments.substring(lastArgument, i);
-//        			System.out.println("Argument: " + argType);
-//        			System.out.println("Description: " + description);
-//        			i += description.length();
-//        		}
-//        	}
         	String[] splitted = arguments.split(" ");
         	for(int i = 0; i < splitted.length; i++) {
         		Type t = Type.getType(splitted[i].replaceAll(ARRAY_INDICATOR, "")); //Remove all array indicators
@@ -84,12 +84,25 @@ public abstract class Command {
         	System.out.println("Correcting");
         	commandNameOffset = this.arguments.length;
         } else this.commandNameOffset = nameOffset;
+        
+        if(settingsArgs.length > 0)
+        	this.properties = settingsArgs;
+    }
+    
+    public Object getOrProperty(String name, Object fallback) {
+    	for(Property p : properties) {
+    		if(p.getName().equals(name)) return p.getData();
+    	}
+    	return fallback;
+    }
+    
+    public Property[] getProperties() {
+    	return properties;
     }
     
     public boolean repeated() {
     	return repeated;
     }
-
     
     public static String prepare(String arguments) {
     	StringBuilder prepArgs = new StringBuilder();

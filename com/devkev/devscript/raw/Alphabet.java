@@ -1,6 +1,7 @@
 package com.devkev.devscript.raw;
 
 public final class Alphabet {
+	
     public static final char BRK_0 = '(';
     public static final char BRK_1 = ')';
     public static final char STR_0 = '"';
@@ -14,6 +15,7 @@ public final class Alphabet {
     public static final char COMMENT = '#';
     public static final char LSTRING_0 = '<';
     public static final char LSTRING_1 = '>';
+    public static final char OBJECT_DOT = '.';
     
     private Alphabet() {}
 
@@ -22,6 +24,14 @@ public final class Alphabet {
     		if(!partOf(c)) return false;
     	}
     	return true;
+    }
+    
+    public static boolean notPartOfVariableDeclarator(char c) {
+    	return partOf(c) && !partOfVariableDeclarator(c);
+    }
+    
+    public static boolean partOfVariableDeclarator(char c) {
+    	return c == OBJECT_DOT || c == VAR_0 || c == ARR_0 || c == ARR_1;
     }
     
     public static boolean partOf(char c) {
