@@ -7,8 +7,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Random;
 
 import com.devkev.devscript.nativecommands.NativeLibrary;
+import com.devkev.devscript.raw.ProcessUtils.ExitCodes;
 
 public class Process {
 
@@ -16,12 +18,11 @@ public class Process {
 	
 	private ArrayList<HookedLibrary> libraries = new ArrayList<HookedLibrary>();
 	private ArrayList<Output> output = new ArrayList<Output>(1); 
-	private ArrayList<Variable> variables = new ArrayList<Variable>(5);
 	private ApplicationListener listener;
 	
-	private static final boolean False = false;
-	private static final boolean True = true;
-	private static final Object Null = null;
+	static final boolean False = false;
+	static final boolean True = true;
+	static final Object Null = null;
 	
 	private BufferedReader inputReader;
 	private InputStream inputStream;
@@ -33,18 +34,13 @@ public class Process {
 	
 	public long maxRuntime = 0; //Runtime in ms. If < 0, runtime is infinite
 	private long currentChar = 0;
-	public final String version = "1.9.6"; 
+	public final String version = "1.9.10"; 
+	
+	private boolean caseSensitive = false;
 	
 	/**The file, the script is executed from. May be null. Just useful for some Native commands*/
 	public File file = null;
-	
-	/**Coming soon*/
-//	public boolean debug = false;
-//	public volatile int commands_executed = 0;
-//	public volatile long process_start = 0;
-//	public volatile long process_end = 0;
-//	public volatile int execution_time = 0;
-//	public volatile float average_commands_per_sec = 0;
+	private Random random;
 	
 	public class HookedLibrary {
 		
@@ -59,35 +55,6 @@ public class Process {
 		}
 	}
 	
-	class Variable {	
-		final String name;
-		private Object value;
-		final boolean FINAL;
-		boolean permanent = true;
-		Block block; //Stack access never null If block == null, the variable might have been initialized when the process is not running -> block will be main on startup
-		
-		/**@param block Holds the stack access and important, for garbage collection. Can be null
-		 * @param permanent - If the variable should get cleared, after the process finished. Useful for command lines*/
-		public Variable(String name, Object value, boolean FINAL, boolean permanent, Block block) {
-			this.name = name;
-			this.value = value;
-			this.FINAL = FINAL;
-			this.block = block;
-			this.permanent = permanent;
-			if(block == null && main != null) {
-				if(main.alive) ApplicationBuilder.panic("Can't declare a non-permanent variable with a null block while process is running");
-			}
-		}
-		
-		/**@return false, if the variable assertion failed*/
-		boolean setValue(Object value, boolean ignoreCheck) {
-			if(FINAL && !permanent) return false;
-			if(value.getClass().getTypeName().equals(value.getClass().getTypeName()) || ignoreCheck) {
-				this.value = value;
-				return true;
-			} else return false;
-		}
-	}
 	
 	/**@param useCache - If the process should temprary save common used commands in a separate list.
 	 * May improve performance on large scripts, but also increase the memory usage.
@@ -110,6 +77,7 @@ public class Process {
 	
 	public Thread execute(String script, boolean newThread) {
 		finalizing = false;
+		random = new Random();
 		
 		if(main != null) {
 			if(main.alive) {
@@ -122,15 +90,23 @@ public class Process {
 		script = script.replaceAll("\r", "");
 		script = script.replaceAll("\n", " ");
 		
-		main = new Block(new StringBuilder(script), null);
-		main.thread = null;
-		
-		for(int i = 0; i < variables.size(); i++) {  //Remove non-permanent variables
-			if(!variables.get(i).permanent) {
-				variables.remove(i);
-				i--;
-			} else if(variables.get(i).block == null) variables.get(i).block = main;
+		//There might be variables to preserve!
+		if(main != null) {
+			ArrayList<Variable> mainVars = new ArrayList<Variable>();
+			mainVars.addAll(main.getLocalVariables());
+			main = new Block(new StringBuilder(script), null, this);
+			
+			for(Variable var : mainVars) {
+				if(var.permanent)
+					main.setVariable(var.name, var.value, var.FINAL, true, true);
+			}
+			
+			main.thread = null;
+		} else {
+			main = new Block(new StringBuilder(script), null, this);
+			main.thread = null;
 		}
+		
 		currentChar = System.currentTimeMillis();
 		
 		process_id ++;
@@ -171,111 +147,39 @@ public class Process {
 		return execute(code, newThread);
 	}
 	
+	public void setCaseSensitive(boolean caseSensitive) {
+		this.caseSensitive = caseSensitive;
+	}
+	
+	public boolean isCaseSensitive() {
+		return caseSensitive;
+	}
+	
 	private void start(Block block) {
 		if(block == null) return;
 		
-//		process_start = System.currentTimeMillis();
-//		commands_executed = 0;
-//		average_commands_per_sec = 0;
 		aliveBlocks.add(block);
-		
-		//char[] arr = block.blockCode.toCharArray();
 		StringBuilder command = block.blockCode;
 		
-		block.exitCode = Block.DONE;
+		block.exitCode = ExitCodes.DONE;
 		block.alive = true;
 		block.executeIndex = 0;
 		block.interrupted = false;
-		if(!checkForInterrupt(block)) return;
-		
+		if(!checkForInterrupt(block)) {
+			return;
+		}
 		while(block.executeIndex < block.blockCode.length()-1 && block.alive) {
 			executeCommand(command, block.executeIndex, true, block);
 		}
 		
-//		boolean inQuote = false;
-//		boolean inComment = false;
-//		short blockWrap = 0;
-//		short arrayWrap = 0;
-//		short paranthesisWrap = 0;
-//		
-//		short lStringWrap = 0;
-//		
-//		block.executeIndex = 0;
-//		for(int i = 0; i < block.blockCode.length(); i++) {
-//			block.executeIndex ++;
-//			
-//			char c = block.blockCode.charAt(i);
-//			boolean ignore = false;
-//			
-//			if(c == Alphabet.LSTRING_0 && !inQuote) lStringWrap++;
-//			else if(c == Alphabet.LSTRING_1 && !inQuote) lStringWrap--;
-//			
-//			if(lStringWrap == 0) {
-//				if(c == Alphabet.STR_0 && !inQuote && (i > 0 ? block.blockCode.charAt(i-1) != Alphabet.ESCAPE : true)) inQuote = true;
-//				else if(c == Alphabet.STR_0 && inQuote && (i > 0 ? block.blockCode.charAt(i-1) != Alphabet.ESCAPE : true)) inQuote = false;
-//			
-//				if(c == Alphabet.ARR_0 && !inQuote) arrayWrap++;
-//				else if(c == Alphabet.ARR_1 && !inQuote) arrayWrap--;
-//			
-//				if(c == Alphabet.BRK_0 && !inQuote) paranthesisWrap++;
-//				else if(c == Alphabet.BRK_1 && !inQuote) paranthesisWrap--;
-//			
-//				if(c == Alphabet.BLCK_0 && !inQuote) blockWrap++;
-//				else if(c == Alphabet.BLCK_1 && !inQuote) blockWrap--;
-//			
-//				if(c == Alphabet.COMMENT && !inComment && !inQuote) inComment = true;
-//				else if(c == Alphabet.COMMENT && inComment && !inQuote) {
-//					inComment = false;
-//					ignore = true;
-//				}
-//			}
-//			
-//			if(!inComment && !ignore && c != '\n') command.append(c);
-//			
-//			if(((c == Alphabet.BREAK || c == '\n') && !inQuote && blockWrap == 0 && lStringWrap == 0 && !inComment) || i >= block.blockCode.length()-1) {
-//				if(command.toString().isEmpty() || command.length() == 1) continue;
-//				block.currentCommand = command.toString();
-//				if(inQuote) {
-//					kill(block, "Syntax Error: Missing quote");
-//					return;
-//				} else if(blockWrap != 0) {
-//					kill(block, "Syntax Error: Missing closing paranthesis");
-//					return;
-//				} else if(arrayWrap != 0) {
-//					kill(block, "Syntax Error: Missing closing array paranthesis");
-//					return;
-//				} else if(inComment) {
-//					kill(block, "Syntax Error: You may have forgot to close the comment quote (" + Alphabet.COMMENT + ")");
-//					return;
-//				} else if(paranthesisWrap != 0) {
-//					kill(block, "Syntax Error: Missing or misplaced paranthesis");
-//					return;
-//				}
-//				
-//				if(command.charAt(command.length()-1) == Alphabet.BREAK) command.setLength(command.length() - 1);
-//				if(command.length() == 0) continue;
-//				
-//				while(command.length() > 0) {
-//					if(command.charAt(0) == ' ') {
-//						command.deleteCharAt(0);
-//						//block.blockCode.deleteCharAt(0);
-//						//i++;
-//					} else break;
-//				}
-//				
-//				if(command.toString().isEmpty()) continue;
-//				
-//				executeCommand(command, block);
-//				if(!checkForInterrupt(block)) break;
-//				command.setLength(0);
-//				//System.gc();
-//			}
-//		}
-		
 		//Searches for a variable called onexit with the type BLOCK
 		if(main == block) {
 			finalizeExit(0, "finished");
+			
+			if(listener != null) 
+				listener.done(main.exitCode); 
 		}
+		
 		block.alive = false;
 		aliveBlocks.remove(block);
 	}
@@ -284,26 +188,36 @@ public class Process {
 	 * <li>Is interrupted</li>
 	 * <li>Is not alive for any reason</li>
 	 * <li>Parent block is not alive and not null</li>
-	 * <li>Parent block is interrupted and not null</li>*/
+	 * <li>Parent block is interrupted and not null</li>
+	 * <li>The parent block is not a constructor</li>*/
 	private boolean checkForInterrupt(Block block) {
 		if(block.parent == null) return block.alive && !block.interrupted;
 		else return block.alive && !block.interrupted
-				&& block.parent.alive && !block.parent.interrupted;
+				&& (block.parent.alive && !block.parent.interrupted
+				|| block.parent.isObject());
 	}
 	
 	/**Interprets a command and its arguments*/
 	Object executeCommand(StringBuilder command, int startIndex, boolean updateExecuteIndex, Block block) {
+		
 		if(!block.alive) return null;
 		
 		if(block.getStack() > 10) {
-			ApplicationBuilder.panic("Max block stack exceeded (10)");
+			ProcessUtils.panic("Max block stack exceeded (10)");
 			return null;
 		}
-		
 		block.currentCommand = command.toString();
 		ArrayList<Object> args = interpretArguments(command, startIndex, updateExecuteIndex, block);
 		if(args == null) return null;
 		if(!block.alive || args.isEmpty()) return null;
+		boolean allNull = true;
+		for(Object a : args) {
+			if(a != null) {
+				allNull = false;
+				break;
+			}
+		}
+		if(allNull) return null;
 		if(maxRuntime > 0) {
 			if(System.currentTimeMillis() - currentChar > maxRuntime) {
 				kill(block, "Process passed max runtime. Aborting");
@@ -313,7 +227,7 @@ public class Process {
 		//Worst case is O(2n), but thats very unlikely
 		boolean addToBlockCache = false;
 		
-		if(block.loop && block.cached.isEmpty()) addToBlockCache = true;
+		if(block.isLoop() && block.cached.isEmpty()) addToBlockCache = true;
 		else if(!block.cached.isEmpty()) {
 			for(int j = 0; j < block.cached.size(); j++) {
 				Command c = block.cached.get(j);
@@ -321,18 +235,19 @@ public class Process {
 				
 				String argument = args.get(c.commandNameOffset).toString();
 				if(argument.getClass().getTypeName().equals("java.lang.String") && !argument.getClass().isArray()) {
-				
-					if(c.name.equals(argument) && (c.argumentCount == (args.size()-1) || c.repeated())) {
+					
+					String name = !isCaseSensitive() ? c.name.toLowerCase() : c.name;
+					if(name.equals(!isCaseSensitive() ? argument.toLowerCase() : argument) && (c.argumentCount == (args.size()-1) || c.repeated())) {
 						boolean accepted = true;
 						for(int i = 0, arg = 0; i < args.size()-1; i++, arg++) {
 							if(i == c.commandNameOffset) arg++;
 							if(arg > c.argumentCount) break;
 							if(!c.repeated()) {
-								if(!ApplicationBuilder.typeMatch(c.arguments[i], ApplicationBuilder.toDataType(args.get(arg)))) accepted = false;//continue main; 
+								if(!ProcessUtils.typeMatch(c.arguments[i], ProcessUtils.toDataType(args.get(arg)))) accepted = false;//continue main; 
 							} else {
 								if(arg < c.argumentCount) {
-									if(!ApplicationBuilder.typeMatch(c.arguments[i], ApplicationBuilder.toDataType(args.get(arg)))) accepted = false;//continue main;
-								} else if(!ApplicationBuilder.typeMatch(c.arguments[c.argumentCount-1], ApplicationBuilder.toDataType(args.get(arg)))) accepted = false;
+									if(!ProcessUtils.typeMatch(c.arguments[i], ProcessUtils.toDataType(args.get(arg)))) accepted = false;//continue main;
+								} else if(!ProcessUtils.typeMatch(c.arguments[c.argumentCount-1], ProcessUtils.toDataType(args.get(arg)))) accepted = false;
 							}
 							if(!accepted) break;
 						}
@@ -362,17 +277,19 @@ public class Process {
 					String argument = args.get(c.commandNameOffset).toString();
 					if(argument.getClass().getTypeName().equals("java.lang.String") && !argument.getClass().isArray()) {
 					
-						if(c.name.equals(argument) && (c.argumentCount == (args.size()-1) || c.repeated())) {
+
+						String name = !isCaseSensitive() ? c.name.toLowerCase() : c.name;
+						if(name.equals(!isCaseSensitive() ? argument.toLowerCase() : argument) && (c.argumentCount == (args.size()-1) || c.repeated())) {
 							boolean accepted = true;
 							for(int i = 0, arg = 0; i < args.size()-1; i++, arg++) {
 								if(i == c.commandNameOffset) arg++;
 								if(arg > c.argumentCount) break;
 								if(!c.repeated()) {
-									if(!ApplicationBuilder.typeMatch(c.arguments[i], ApplicationBuilder.toDataType(args.get(arg)))) accepted = false;//continue main; 
+									if(!ProcessUtils.typeMatch(c.arguments[i], ProcessUtils.toDataType(args.get(arg)))) accepted = false;//continue main; 
 								} else {
 									if(arg < c.argumentCount) {
-										if(!ApplicationBuilder.typeMatch(c.arguments[i], ApplicationBuilder.toDataType(args.get(arg)))) accepted = false;//continue main;
-									} else if(!ApplicationBuilder.typeMatch(c.arguments[c.argumentCount-1], ApplicationBuilder.toDataType(args.get(arg)))) accepted = false;
+										if(!ProcessUtils.typeMatch(c.arguments[i], ProcessUtils.toDataType(args.get(arg)))) accepted = false;//continue main;
+									} else if(!ProcessUtils.typeMatch(c.arguments[c.argumentCount-1], ProcessUtils.toDataType(args.get(arg)))) accepted = false;
 								}
 								if(!accepted) break;
 							}
@@ -393,22 +310,20 @@ public class Process {
 					}
 				} 
 		}
-		 String argsString = "";
-		 for(Object d : args) argsString +=  (d instanceof Array ? "@" : "") + d.toString() + " ";
-		 kill(block,"No such command: " +  (argsString.isEmpty() ? "[null]" : argsString));
-//		 process_end = System.currentTimeMillis();
-//		 execution_time = (int) (process_end - process_start);
-//		 if(debug) {
-//			 log("Debug report:\n\tExecution time: " + execution_time + "(" + (float) execution_time/1000f + " sec)\n\t"
-//			 		+ "Commands executed: " + commands_executed + "\n\t"
-//			 		+ "Average commands per second:  " + average_commands_per_sec + " commands/sec", true);
-//		 }
-		 return null;
+		String argsString = "";
+		for(Object d : args) argsString +=  (d instanceof Array ? "@" : "") + d.toString() + " ";
+		kill(block,"No such command: " +  (argsString.isEmpty() ? "[null]" : argsString));
+		return null;
 	}
 	
 	/**Breaks the arguments, when a ; is encountered*/
-	ArrayList<Object> interpretArguments(StringBuilder command, int start, boolean updateIndex, Block block) {
-		if(!checkForInterrupt(block)) return null;
+	public ArrayList<Object> interpretArguments(StringBuilder command, int start, boolean updateIndex, Block block) {
+		if(!checkForInterrupt(block)) {
+			//warning("Aborting argument interptretation for block " + block + ": interrupted.");
+			block.interrupt();
+			block.alive = false;
+			return null;
+		}
 		
 		ArrayList<Object> args = new ArrayList<>(1);
 		
@@ -441,14 +356,16 @@ public class Process {
 					kill(block, "Unable to close long String (too many \"<\" without escape character)");
 					return null;
 				}
-				args.add(subsequence.replace(Alphabet.ESCAPE+"<", "<").replace(Alphabet.ESCAPE+">", ">").replace("\\\\", "\\"));
+				args.add(subsequence.replace(Alphabet.ESCAPE+"<", "<").replace(Alphabet.ESCAPE+">", ">").replace("\\\\", "\\").replace("\\n", "\n").replace("\\t", "\t"));
 				i += subsequence.length() + 1;
 				
 			} else if(current == Alphabet.STR_0) {
 				String subsequence = findMatching(command.toString(), i, 0, Alphabet.STR_0, Alphabet.STR_0, Alphabet.ESCAPE, false);
-				Object string = subsequence.replace(Alphabet.ESCAPE+"", "");
-				args.add(string);
-				i += subsequence.length() + 1;
+				if(subsequence != null) {
+					Object string = subsequence.replace("\\n", "\n").replace("\\t", "\t").replace("\\", "");
+					args.add(string);
+					i += subsequence.length() + 1;
+				} else kill(block, "Syntax error: Missing Semicolon");
 					
 			} else if(current == Alphabet.BRK_0) {
 				String subCommand = findMatching(command.toString(), i, 0, Alphabet.BRK_0, Alphabet.BRK_1, Alphabet.ESCAPE, true);
@@ -462,75 +379,123 @@ public class Process {
 				i += subCommand.length() + 1;
 						
 			} else if(current == Alphabet.VAR_0) {  //Search in <variables> for the specified datacontainer
-				StringBuilder varName = new StringBuilder();
-				ArrayList<String> indexChain = new ArrayList<String>();
-				boolean atIndex = false;
-				
+				ArrayList<String> objDots = new ArrayList<String>();
+				//At first, check for dots and chain them
+				String dotVarname = "";
 				for(int j = i+1; j < command.length(); j++, i++) {
 					char c = command.charAt(j);
 					
-					if(c == ' ' || c == Alphabet.BLCK_0 || c == Alphabet.BREAK || c == Alphabet.BRK_0 || c == Alphabet.STR_0 || c == Alphabet.BRK_1) break;					
-					
-					if(c == Alphabet.ARR_0) {
-						String index = findMatching(command.toString(), j, 0, Alphabet.ARR_0, Alphabet.ARR_1, Alphabet.ESCAPE, true);
-						indexChain.add(index);
-						j += index.length();
-						i = j-1;
-						atIndex = true;
+					if(c == ' ' || c == Alphabet.BLCK_0 || 
+							c == Alphabet.BREAK || c == Alphabet.BRK_0 || c == Alphabet.STR_0 || c == Alphabet.BRK_1) {
+						objDots.add(dotVarname);
+						dotVarname = "";
+						break;
 					}
 					
-					if(!atIndex) varName.append(c);
-				}
-				Object variableValue = getVariable(varName.toString(), block);
-				
-				if(variableValue == null && !varName.toString().equals("null")) {
-					kill(block, "Unknown variable name: " + varName);
-					return null;
-				}
-				
-				if(!indexChain.isEmpty()) {
-					
-					for(String s : indexChain) {
-						ArrayList<Object> indexArgument = interpretArguments(new StringBuilder(s), 0, false, block);
-						
-						if(indexArgument == null) {
-							kill(block, "Error trying to fetch array index (Caused by previous error)");
-							return null;
-						}
-						
-						if(indexArgument.isEmpty()) {
-							kill(block, "Error trying to fetch array index (Empty statement)");
-							return null;
-						}
-						
-						Object index = indexArgument.get(0);
-						
-						if(!(variableValue instanceof Array)) {
-							kill(block, "Trying to get index from a non-array value");
-							return null;
-						}
-						
-						if(index == null) {
-							kill(block, "Index must be an integer");
-							return null;
-						}
-						
-						boolean canBeInteger = ApplicationBuilder.testForWholeNumber(index.toString());
-						if(!canBeInteger) {
-							kill(block, "Index must be an integer");
-							return null;
-						}
-						int value = Integer.valueOf(index.toString());
-						if(value < 0 || value >= ((Array) variableValue).getIndexes().size()) {
-							kill(block, "Array index out of bounds (index: " + value + " length: " + ((Array) variableValue).getIndexes().size() + ")");
-							return null;
-						}
-						
-						variableValue = ((Array) variableValue).getIndexes().get(value);
+					if(c == Alphabet.OBJECT_DOT) {
+						objDots.add(dotVarname);
+						dotVarname = "";
+						continue;
 					}
-					args.add(variableValue);
-				} else args.add(variableValue);
+					dotVarname += command.charAt(j);
+				}
+				
+				if(!dotVarname.isEmpty()) objDots.add(dotVarname.trim());
+				
+				Object lastVar = null;
+				Block dotScope = block; //The scope can change if you want to access variables from within an object!
+				for(int k = 0; k < objDots.size(); k++) {
+					String dotvars = objDots.get(k);
+					
+					ArrayList<String> indexChain = new ArrayList<String>();
+					boolean atIndex = false;
+					StringBuilder realVarName = new StringBuilder();
+					for(int j = 0; j < dotvars.length(); j++) {
+						char c = dotvars.charAt(j);
 						
+						if(c == Alphabet.ARR_0) {
+							String index = findMatching(dotvars, j, 0, Alphabet.ARR_0, Alphabet.ARR_1, Alphabet.ESCAPE, true);
+							indexChain.add(index);
+							j += index.length();
+							
+							atIndex = true;
+						}
+						if(!atIndex) realVarName.append(c);
+						
+					}
+					
+					if(realVarName.length() == 0) realVarName.append(dotvars);
+					
+					Object variableValue = getVariable(realVarName.toString(), dotScope);
+					
+					if(variableValue == null && !realVarName.toString().equals("null")) {
+						kill(block, "Unknown variable name or property value: " + realVarName.toString());
+						return null;
+					}
+					
+					if(!indexChain.isEmpty()) {
+						
+						for(String s : indexChain) {
+							
+							ArrayList<Object> indexArgument = interpretArguments(new StringBuilder(s), 0, false, block);
+							
+							if(indexArgument == null) {
+								kill(block, "Error trying to fetch array index (Caused by previous error)");
+								return null;
+							}
+							
+							if(indexArgument.isEmpty()) {
+								kill(block, "Error trying to fetch array index (Empty statement)");
+								return null;
+							}
+							
+							Object index = indexArgument.get(0);
+							
+							if(!(variableValue instanceof Array)) {
+								kill(block, "Trying to get index from a non-array value");
+								return null;
+							}
+							
+							if(index == null) {
+								kill(block, "Index must be an integer or ?");
+								return null;
+							}
+							
+							int value = 0;
+							if(index.toString().equals("?")) 
+								value = random.nextInt(((Array) variableValue).getIndexes().size());
+							else {
+								boolean canBeInteger = ProcessUtils.testForWholeNumber(index.toString());
+								if(!canBeInteger) {
+									kill(block, "Index must be an integer or ?");
+									return null;
+								}
+								value = Integer.valueOf(index.toString());
+								if(value < 0 || value >= ((Array) variableValue).getIndexes().size()) {
+									kill(block, "Array index out of bounds (index: " + value + " length: " + ((Array) variableValue).getIndexes().size() + ")");
+									return null;
+								}
+							}
+							variableValue = ((Array) variableValue).getIndexes().get(value);
+						}
+						
+					}
+					lastVar = variableValue;
+					
+					if(objDots.size() > 1 && k < objDots.size()-1) {
+						if(!(variableValue instanceof Block)) {
+							kill(block, "Cannot access properties of non-object variables");
+							return null;
+						} else {
+							if(!((Block) variableValue).isObject()) {
+								kill(block, "Cannot access properties of non-object variables");
+								return null;
+							} else dotScope = (Block) variableValue;
+						}
+					}
+				}	
+				args.add(lastVar);
+				
 			} else if(current == Alphabet.ARR_0) {
 				String array = findMatching(command.toString(), i, 0, Alphabet.ARR_0, Alphabet.ARR_1, Alphabet.ESCAPE, true);
 				Array arrayData = new Array();
@@ -544,7 +509,7 @@ public class Process {
 			} else if(current == Alphabet.BLCK_0) {
 				String blockCode = findMatching(command.toString(), i, 0, Alphabet.BLCK_0, Alphabet.BLCK_1, Alphabet.ESCAPE, true);
 				
-				args.add(new Block(new StringBuilder(blockCode), block));
+				args.add(new Block(new StringBuilder(blockCode), block, this));
 				i += blockCode.length() + 1;
 			
 			} else if(current != ' ') {
@@ -552,11 +517,12 @@ public class Process {
 				StringBuilder sequence = new StringBuilder();
 				b: for(int j = i; j < command.length(); j++) { //Break this string by any alphabet char -> Otherwise surround string with "
 					char  c = command.charAt(j);
-					if(!Alphabet.partOf(c) && c != ' ') {
+					//if(!Alphabet.partOf(c) && c != ' ') {
+					if(c != ' ' && (!Alphabet.partOf(c) || Alphabet.partOfVariableDeclarator(c))) {
 						sequence.append(c);
 						if(j+1 < command.length()) {
 							char next = command.charAt(j+1);
-							if(Alphabet.partOf(next) || next == ' ') {
+							if(next == ' ' || Alphabet.notPartOfVariableDeclarator(next)) {
 								i--;
 								break b;
 							}
@@ -578,18 +544,18 @@ public class Process {
 	}
 	
 	/**@param garbageCollector - If the process should remove variables after the block was executed.
-	 * Usually true, because the variables would not be accessible anymore anyway.*/
-	public void  executeBlock(Block block, boolean garbageCollector, Object... args) {
+	 * Usually true, because the variables would not be accessible anymore anyway.
+	 * @param isConstructor - If the block is used as a constructor. This means, that variables created in this block are:
+	 * not garbegage collected and are isolated from other blocks.*/
+	public void executeBlock(Block block, boolean garbageCollector, Object... args) {
 		if(block == null) block = getMain();
 		//if(block.alive) kill(block, "Block already running");
 		
 		/*The arguments are just variables declared in the block - local scope and removed afterwards, if requested*/
 		if(block != null) {
-			for(int i = 0; i < args.length; i++) {
+			for(int i = 0; i < args.length; i++) 
 				setVariable(String.valueOf(i), args[i], true, false, block);
-			}
 		}
-		
 		start(block);
 		if(garbageCollector) garbageCollection(block);
 	}
@@ -597,40 +563,11 @@ public class Process {
 	/**Clears all variables associated with the block*/
 	public void garbageCollection(Block block) {
 		if(block == null) return;
-		
-		for(int i = 0; i < variables.size(); i++) {
-			if(variables.get(i).block != null) {
-				if(variables.get(i).block.equals(block) && !variables.get(i).permanent) {
-					variables.remove(i);
-					i--;
-				}
-			}
-		}
-		
-		System.gc();
+		block.clearVariables();
 	}
 	
 	public void removeVariable(String name, Block block) {
-		for(Variable v : variables) {
-			if(v.name.equals(name) && !v.FINAL && v.block.getStack() <= block.getStack()) {
-				variables.remove(v);
-				return;
-			}
-		}
-	}
-	
-	/**Removes all variables with the specified name, no matter in wich block or stack they are*/
-	public void removeVariable(String name) {
-		for(int i = 0; i < variables.size(); i++) {
-			if(variables.get(i).name.equals(name) && !variables.get(i).FINAL) {
-				variables.remove(i);
-				i--;
-			}
-		}
-	}
-	
-	public ArrayList<Variable> getVariables() {
-		return variables;
+		//TODO remove
 	}
 	
 	/**If a variable with the name already exist, the value is altered, if:<br>
@@ -640,29 +577,7 @@ public class Process {
 	 * @param block - The block, the variable will be associated with. Important is the {@link Block#stack}
 	 * Use null, if the variable is not declared inside a block.*/
 	public void setVariable(String name, Object value, boolean FINAL, boolean permanent, Block block) {
-		if(name.contains(" ") || Alphabet.partOf(name)) {
-			kill(block, "Variable name contains illegal/reserved characters");
-			return;
-		}
-		if(block == null) block = getMain();
-		
-		for(Variable v : variables) { //If any block is null, it is treated as stack = 0 and alive = false
-			if(v.name.equals(name)) {
-				int stack1 = v.block == null ? 0 : v.block.getStack();
-				int stack2 = block == null ? 0 : block.getStack();
-			
-				if(stack1 <= stack2) {
-					if(!v.FINAL) {// || v.permanent) {
-						if(!v.setValue(value, getMain() == null)) kill(block, "Failed to assign type " + value + " to existing variable " + v.value);
-					}
-					//} else if(v.FINAL && getMain() != null) {
-					//	kill(block,"Tried to modyfy a constant: " + name);
-					//}
-					return;
-				}
-			}
-		}
-		this.variables.add(new Variable(name, value, FINAL, permanent, block));
+		block.setVariable(name, value, FINAL, permanent, true);
 	}
 	
 	public void setVariable(String name, Object value, boolean FINAL, boolean permanent) {
@@ -676,12 +591,7 @@ public class Process {
 		else if(name.equals("false")) return False;
 		else if(name.equals("null")) return Null;
 		else {
-			for(Variable v : variables) {
-				byte stack1 = v.block == null ? 0 : v.block.getStack();
-				byte stack2 = block == null ? 0 : block.getStack();
-				if(v.name.equals(name) && stack1 <= stack2) return v.value;
-			}
-			return null;
+			return block.getVariable(name);
 		}
 	}
 	
@@ -743,10 +653,17 @@ public class Process {
 	}
 	
 	public synchronized void kill(Block block, String errorMessage) {
+		
 		if(block == null) {
-			error("Java Error> " + errorMessage);
+			error("A java error happened outside of the devscript environment: " + errorMessage);
+			kill(main, "Unknown Java Exception");
 			return;
 		} else {
+			//Check block and parent blocks. Also, maybe create a stacktrace?
+			if(block.inheritTryCatch()) {
+				return;
+			}
+			
 			if (block.currentCommand.length() > 30) {
 				block.currentCommand = block.currentCommand.subSequence(0, 10) + " ... " + block.currentCommand.substring(block.currentCommand.length() - 10, block.currentCommand.length());
 			}
@@ -762,14 +679,11 @@ public class Process {
 			block.alive = false;
 			block.interrupted = true;
 			block.currentCommand = "";
-			
-			//System.out.println("Cleaning stack ...");
 		}
 		
-		block.exitCode = Block.ERROR;
+		block.exitCode = ExitCodes.ERROR;
 		aliveBlocks.clear();
 		garbageCollection(main);
-		System.gc();
 	}
 	
 	public boolean isRunning() {
@@ -792,15 +706,27 @@ public class Process {
 	}
 	
 	public void pause(Block block) {
-		if(block.thread == null) {
+		boolean anyThread = false;
+		
+		Block current = block;
+		while(block.parent != null) {
+			if(current.thread != null)  {
+				anyThread = true;
+				break;
+			}
+			current = block.parent;
+		}
+			
+		
+		if(!anyThread) {
 			warning("Block has no thread attached. Pausing wont hav any effect");
 			return;
 		}
 		
 		if(block.alive) {
-			synchronized (block.thread) {
+			synchronized (current.thread) {
 				try {
-					block.thread.wait();
+					current.thread.wait();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -826,7 +752,8 @@ public class Process {
 	
 	/**Pauses the process thread (if not specified, the Runnable.getRunnable() thread)
 	 * and waits, until an input from the given input stream ({@link Process#setInput(InputStream)})
-	 * <br>The input is passed, if the line is fed into the process, if it is terminated with either a \n or \r character
+	 * <br>The input is passed
+	 * @param escapeChar The character that terminates the input. Usually \n or \r
 	 * @throws IOException */
 	public String waitForInput() throws IOException {
 		if(inputReader == null) return "";
@@ -910,7 +837,7 @@ public class Process {
 	
 	boolean finalizing = false;
 	
-	private void finalizeExit(int exitCode, String errorMessage) {
+	public void finalizeExit(int exitCode, String errorMessage) {
 		if(!finalizing) return;
 		
 		finalizing = true;

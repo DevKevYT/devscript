@@ -5,25 +5,31 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.Random;
 
-import com.devkev.devscript.raw.ApplicationBuilder;
+import com.devkev.devscript.raw.Alphabet;
+import com.devkev.devscript.raw.ProcessUtils;
 import com.devkev.devscript.raw.Array;
 import com.devkev.devscript.raw.Block;
 import com.devkev.devscript.raw.Command;
 import com.devkev.devscript.raw.ConsoleMain;
 import com.devkev.devscript.raw.DataType;
-import com.devkev.devscript.raw.Dictionary;
 import com.devkev.devscript.raw.Library;
 import com.devkev.devscript.raw.Output;
 import com.devkev.devscript.raw.Process;
 import com.devkev.devscript.raw.Process.HookedLibrary;
-import com.devkev.devscript.raw.ApplicationBuilder.Type;
+import com.devkev.devscript.raw.Variable;
+import com.devkev.devscript.raw.ProcessUtils.Type;
 
 public class NativeLibrary extends Library {
-
+	
+	public BufferedReader execErrorReader;
+	public BufferedReader execReader;
+	public java.lang.Process process;
 	
 	public NativeLibrary() {
 		super("Native");
@@ -52,41 +58,154 @@ public class NativeLibrary extends Library {
 				new Command("=", "string ???", "Defines a variable. Access it with $variableName", 1) {
 					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(args[1] instanceof Block) {
-							((Block) args[1]).isFunction = true;
+						Block dotScope = block;
+						
+						ArrayList<String> objDots = new ArrayList<String>();
+						//At first, check for dots and chain them
+						String dotVarname = "";
+						for(int j = 0; j < args[0].toString().length(); j++) {
+							if(args[0].toString().charAt(j) == Alphabet.OBJECT_DOT) {
+								objDots.add(dotVarname);
+								dotVarname = "";
+								continue;
+							}
+							dotVarname += args[0].toString().charAt(j);
 						}
+						if(!dotVarname.isEmpty()) objDots.add(dotVarname.trim());
+						
+						for(int i = 0; i < objDots.size(); i++) {
+							String currentDot = objDots.get(i);
+							ArrayList<String> indexChain = new ArrayList<String>();
+							boolean atIndex = false;
+							StringBuilder realVarName = new StringBuilder();
+							for(int j = 0; j < currentDot.length(); j++) {
+								char c = currentDot.charAt(j);
+								
+								if(c == Alphabet.ARR_0) {
+									String index = Process.findMatching(currentDot, j, 0, Alphabet.ARR_0, Alphabet.ARR_1, Alphabet.ESCAPE, true);
+									indexChain.add(index);
+									j += index.length();
+									atIndex = true;
+								}
+								if(!atIndex) realVarName.append(c);
+							}
+							if(realVarName.length() == 0) realVarName.append(currentDot);
+							
+							Object variableValue = dotScope.getVariable(realVarName.toString());
+							
+							if(!indexChain.isEmpty()) {
+								Array lastArrayPointer = null;
+								int lastIndexPointer = 0;
+								for(String s : indexChain) {
+									ArrayList<Object> indexArgument = application.interpretArguments(new StringBuilder(s), 0, false, block);
+									if(indexArgument == null) {
+										application.kill(block, "Error trying to fetch array index for variable: " + realVarName + " (Failed to interpret index argument: [" + s + "] )");
+										return null;
+									}
+									if(indexArgument.isEmpty()) {
+										application.kill(block, "Index for variable: \"" + realVarName + "\" needs to be a positive integer (empty)");
+										return null;
+									}
+									Object index = indexArgument.get(0);
+									if(index == null) {
+										application.kill(block, "Index must be an integer");
+										return null;
+									}
+									boolean canBeInteger = ProcessUtils.testForWholeNumber(index.toString());
+									if(!canBeInteger) {
+										application.kill(block, "Index for variable: \"" + realVarName + "\" needs to be a positive integer (" + index + ")");
+										return null;
+									}
+									int value = Integer.valueOf(index.toString());
+									if(value < 0) {
+										application.kill(block, "Index for variable: \"" + realVarName + "\" needs to be a positive integer (" + index + ")");
+										return null;
+									}
+									if(variableValue == null) {
+										Array array = new Array();
+										for(int k = 0; k < value; k++) array.push(null);
+										dotScope.setVariable(realVarName.toString(), array, false, false, true);
+										variableValue = dotScope.getVariable(realVarName.toString());
+									} else if(!(variableValue instanceof Array)) {
+										application.kill(block, "Trying to get index from variable \"" + realVarName + "\" with type: " + ProcessUtils.toDataType(variableValue).type);
+										return null;
+									}
+									if(value >= ((Array) variableValue).getIndexes().size()) {
+										for(int k = ((Array) variableValue).getIndexes().size(); k < value+1; k++) 
+											((Array) variableValue).push(null);
+									}
+									lastIndexPointer = value;
+									lastArrayPointer = ((Array) variableValue);
+									variableValue = ((Array) variableValue).getIndexes().get(value);
+								}
+								if(lastArrayPointer != null) {
+									if(i == objDots.size()-1) {
+										if(args[1] instanceof Block) 
+											((Block) args[1]).setAsFunction();
+										lastArrayPointer.getIndexes().set(lastIndexPointer, args[1]);
+										return null;
+									} else variableValue = lastArrayPointer.getIndexes().get(lastIndexPointer);
+								}
+							}
+							
+							if(objDots.size() > 1) {
+								if(i < objDots.size()-1) {
+									if(variableValue == null) {
+										application.kill(block, "Cannot access properties of non existing variable \"" + realVarName.toString() + "\"");
+										return null;
+									} else if(!(variableValue instanceof Block)) {
+										application.kill(block, "Cannot access properties of non-object variable \"" + realVarName.toString() + "\"");
+										return null;
+									} else {
+										if(!((Block) variableValue).isObject()) {
+											application.kill(block, "Cannot access properties of non-object variable \"" + realVarName.toString() + "\"");
+											return null;
+										} else dotScope = (Block) variableValue;
+									}
+								} else {
+									if(i == objDots.size()-1) {
+										dotScope.setVariable(realVarName.toString(), args[1], false, false, true);
+										return null;
+									}
+								}
+							}
+						}
+						
+						if(args[1] instanceof Block) 
+							((Block) args[1]).setAsFunction();
 						application.setVariable(args[0].toString(), args[1], false, false, block);
 						return null;
 					}
 				},
 				
-				//This one is a special case.
-				new Command("===", "??? @? string ...", "[object] === [array] [index] [index] ... Like '=' for arrays", 1) {
+				new Command("try", "block", "Tries to execute the block and ignores errors. Blocks that inherid this block are also affected.") {
+					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						Array arr = (Array) args[1];
-						for(int i = 2; i < args.length; i++) {
-							if(ApplicationBuilder.testForWholeNumber(args[2].toString())) {
-								int index = Integer.valueOf(args[i].toString());
-								if(index >= 0 && index < arr.getIndexes().size()) {
-									if(i < args.length-1) {
-										if(arr.getIndexes().get(index) instanceof Array) {
-											arr = (Array) arr.getIndexes().get(index);
-										} else application.kill(block, "Value if not an Array!");
-									} else arr.getIndexes().set(index, args[0]);
-								} else application.kill(block, "Array index out of bounds (" + index + ", length: " + arr.getIndexes().size() + ")");
-							} else application.kill(block, "Index needs to be an integer");
-						}
+						((Block) args[0]).setAsTryCatch();
+						application.executeBlock((Block) args[0], false);
 						return null;
 					}
 				},
 				
-				new Command("+", "string string", "Adds two numbers and returns the result, if either of the arguments is not a number, two strings are added", 1) {
+				new Command("+", "??? ???", "Adds two numbers and returns the result, if either of the arguments is not a number, two strings are added. If both arguments are array, the two arrays are concatenated", 1) {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForFloat(args[0].toString()) || !ApplicationBuilder.testForFloat(args[1].toString())) {
+						if(args[0] instanceof Array && args[1] instanceof Array) {
+							Array concatenated = (Array) args[0];
+							concatenated.getIndexes().addAll(((Array) args[1]).getIndexes());
+							concatenated.updateArraytype();
+							return concatenated;
+						} else if(args[0] instanceof Array && !(args[1] instanceof Array)) {
+							//Add an element to an array
+							Array arr = (Array) args[0];
+							arr.push(args[1]);
+							return arr;
+						}
+						
+						if(!ProcessUtils.testForFloat(args[0].toString()) || !ProcessUtils.testForFloat(args[1].toString())) {
 							return args[0].toString() + args[1].toString();
 						}					
 						
-						if(ApplicationBuilder.testForWholeNumber(args[0].toString()) && ApplicationBuilder.testForWholeNumber(args[1].toString())) {
+						if(ProcessUtils.testForWholeNumber(args[0].toString()) && ProcessUtils.testForWholeNumber(args[1].toString())) {
 							if(args[0].toString().length() <= 19 && args[1].toString().length() <= 19) {
 								return String.valueOf(Long.valueOf(args[0].toString()) + Long.valueOf(args[1].toString()));
 							} else return args[0].toString() + args[1].toString();
@@ -100,12 +219,12 @@ public class NativeLibrary extends Library {
 				
 				new Command("-", "string string", "Subtracts two numbers", 1) {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForFloat(args[0].toString()) || !ApplicationBuilder.testForFloat(args[1].toString())) {
+						if(!ProcessUtils.testForFloat(args[0].toString()) || !ProcessUtils.testForFloat(args[1].toString())) {
 							application.kill(block, "Can only subtract numbers!");
 							return null;
 						}
 						
-						if(ApplicationBuilder.testForWholeNumber(args[0].toString()) && ApplicationBuilder.testForWholeNumber(args[1].toString())) {
+						if(ProcessUtils.testForWholeNumber(args[0].toString()) && ProcessUtils.testForWholeNumber(args[1].toString())) {
 							if(args[0].toString().length() <= 19 && args[1].toString().length() <= 19) {
 								return String.valueOf(Long.valueOf(args[0].toString()) - Long.valueOf(args[1].toString()));
 							} else {
@@ -122,11 +241,11 @@ public class NativeLibrary extends Library {
 				
 				new Command("*", "string string", "Multiplies two numbers", 1) {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForFloat(args[0].toString()) || !ApplicationBuilder.testForFloat(args[1].toString())) {
+						if(!ProcessUtils.testForFloat(args[0].toString()) || !ProcessUtils.testForFloat(args[1].toString())) {
 							application.kill(block, "Can only multiply numbers!");
 							return null;
 						}
-						if(ApplicationBuilder.testForWholeNumber(args[0].toString()) && ApplicationBuilder.testForWholeNumber(args[1].toString())) {
+						if(ProcessUtils.testForWholeNumber(args[0].toString()) && ProcessUtils.testForWholeNumber(args[1].toString())) {
 							if(args[0].toString().length() <= 19 && args[1].toString().length() <= 19) {
 								return String.valueOf(Long.valueOf(args[0].toString()) * Long.valueOf(args[1].toString()));
 							} else {
@@ -143,7 +262,7 @@ public class NativeLibrary extends Library {
 				
 				new Command("/", "string string", "Divides two numbers", 1) {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForFloat(args[0].toString()) || !ApplicationBuilder.testForFloat(args[1].toString())) {
+						if(!ProcessUtils.testForFloat(args[0].toString()) || !ProcessUtils.testForFloat(args[1].toString())) {
 							application.kill(block, "Can only divide numbers!");
 							return null;
 						}
@@ -160,61 +279,61 @@ public class NativeLibrary extends Library {
 					if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
 				    	//mac
 						ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", args[0].toString());
-						java.lang.Process process = builder.start();
+						process = builder.start();
 						
-						BufferedReader reader =  new BufferedReader(new InputStreamReader(process.getInputStream()));
+						execReader =  new BufferedReader(new InputStreamReader(process.getInputStream()));
 						String line = null;
-						while ( (line = reader.readLine()) != null) {
+						while ( (line = execReader.readLine()) != null) {
 							application.log(line, true);
 						}
-						reader.close();
+						execReader.close();
 
-						BufferedReader errorReader =  new BufferedReader(new InputStreamReader(process.getErrorStream()));
+						execErrorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 						line = null;
-						while ( (line = errorReader.readLine()) != null) {
+						while ( (line = execErrorReader.readLine()) != null) {
 							application.log(line, true);
 						}
-						errorReader.close();
+						execErrorReader.close();
 						process.destroy();
 						
 					} else if (OS.indexOf("win") >= 0) {
 						//windows
 						ProcessBuilder builder = new ProcessBuilder("cmd", "/c", args[0].toString());
-						java.lang.Process process = builder.start();
+						process = builder.start();
 
-						BufferedReader reader =  new BufferedReader(new InputStreamReader(process.getInputStream()));
+						execReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 						String line = null;
-						while ( (line = reader.readLine()) != null) {
+						while ( (line = execReader.readLine()) != null) {
 							application.log(line, true);
 						}
-						reader.close();
+						execReader.close();
 
-						BufferedReader errorReader =  new BufferedReader(new InputStreamReader(process.getErrorStream()));
+						execErrorReader =  new BufferedReader(new InputStreamReader(process.getErrorStream()));
 						line = null;
-						while ( (line = errorReader.readLine()) != null) {
+						while ( (line = execErrorReader.readLine()) != null) {
 							application.log(line, true);
 						}
-						errorReader.close();
+						execErrorReader.close();
 						process.destroy();
 						
 					} else if (OS.indexOf("nux") >= 0) {
 						//linux
 						ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", args[0].toString());
-						java.lang.Process process = builder.start();
+						process = builder.start();
 						
-						BufferedReader reader =  new BufferedReader(new InputStreamReader(process.getInputStream()));
+						execReader =  new BufferedReader(new InputStreamReader(process.getInputStream()));
 						String line = null;
-						while ( (line = reader.readLine()) != null) {
+						while ( (line = execReader.readLine()) != null) {
 							application.log(line, true);
 						}
-						reader.close();
+						execReader.close();
 
-						BufferedReader errorReader =  new BufferedReader(new InputStreamReader(process.getErrorStream()));
+						execErrorReader =  new BufferedReader(new InputStreamReader(process.getErrorStream()));
 						line = null;
-						while ( (line = errorReader.readLine()) != null) {
+						while ( (line = execErrorReader.readLine()) != null) {
 							application.log(line, true);
 						}
-						errorReader.close();
+						execErrorReader.close();
 						process.destroy();
 						
 					} else application.error("Failed to determine operating system");
@@ -242,7 +361,7 @@ public class NativeLibrary extends Library {
 				new Command("pop", "@? string", "Removes the specified index of the array") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						Array array = (Array) args[0];
-						if(!ApplicationBuilder.testForWholeNumber(args[1].toString())) {
+						if(!ProcessUtils.testForWholeNumber(args[1].toString())) {
 							application.kill(block, "Array index needs to be an integer");
 							return null;
 						}
@@ -258,51 +377,34 @@ public class NativeLibrary extends Library {
 					}
 				},
 				
-				new Command("createdict", "", "Returns an empty dictionary") {
+				new Command("new-object", "block", "new-object <constructor>") {
+					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						return new Dictionary();
+						Block b = (Block) args[0];
+						b.setAsObject();
+						application.executeBlock(b, false);
+						return b;
 					}
 				},
 				
-				new Command("get", "dict string", "get [dictionary] [key] Returns the corresponding value of the key inside the dictionary") {
+				new Command("object", "string block", "object <name> <constructor>") {
+					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						return ((Dictionary) args[0]).getEntry(args[1].toString());
-					}
-				},
-				
-				new Command("set", "dict string ???", "set [dictionary] [key] [object]") {
-					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						((Dictionary) args[0]).addEntry(args[1].toString(), args[2]);
+						Block b = (Block) args[1];
+						b.setAsObject();
+						application.executeBlock(b, false);
+						application.setVariable(args[0].toString(), b, false, false, block);
 						return null;
-					}
-				},
-				
-				new Command("remove", "dict string", "remove [dictionary] [key] Returns false, if there was no associated key with the name.") {
-					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						return ((Dictionary) args[0]).removeEntry(args[1].toString());
-					}
-				},
-				
-				new Command("clear", "dict", "clear [dict] Removes all values from the dictionary") {
-					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						((Dictionary) args[0]).clear();
-						return null;
-					}
-				},
-				
-				new Command("isEmpty", "dict", "Checks, if a dictionary is empty") {
-					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						return ((Dictionary) args[0]).getKeys().isEmpty();
 					}
 				},
 				
 				new Command("push", "??? @?", "Pushes a new value into the array") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						Array arr = (Array) args[1];
-						DataType typeArg1 = ApplicationBuilder.toDataType(args[1]);
-						DataType typeArg0 = ApplicationBuilder.toDataType(args[0]);
+						DataType typeArg1 = ProcessUtils.toDataType(args[1]);
+						DataType typeArg0 = ProcessUtils.toDataType(args[0]);
 						
-						if(!ApplicationBuilder.typeMatch(typeArg1, new DataType(typeArg0.type, true)) && typeArg1.type != Type.NULL) {
+						if(!ProcessUtils.typeMatch(typeArg1, new DataType(typeArg0.type, true)) && typeArg1.type != Type.NULL) {
 							application.kill(block, "Unable to push value type " + typeArg0.type + " into array with type " + typeArg1.type);
 							return null;
 						} else arr.push(args[0]);
@@ -314,7 +416,7 @@ public class NativeLibrary extends Library {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						Float arg0;
 						Float arg1;
-						if(!ApplicationBuilder.testForFloat(args[0].toString()) || !ApplicationBuilder.testForFloat(args[1].toString())) {
+						if(!ProcessUtils.testForFloat(args[0].toString()) || !ProcessUtils.testForFloat(args[1].toString())) {
 							arg0 = (float) args[0].toString().length();
 							arg1 = (float) args[1].toString().length();
 						} else {
@@ -329,7 +431,7 @@ public class NativeLibrary extends Library {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						Float arg0;
 						Float arg1;
-						if(!ApplicationBuilder.testForFloat(args[0].toString()) || !ApplicationBuilder.testForFloat(args[1].toString())) {
+						if(!ProcessUtils.testForFloat(args[0].toString()) || !ProcessUtils.testForFloat(args[1].toString())) {
 							arg0 = (float) args[0].toString().length();
 							arg1 = (float) args[1].toString().length();
 						} else {
@@ -344,7 +446,7 @@ public class NativeLibrary extends Library {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						Float arg0;
 						Float arg1;
-						if(!ApplicationBuilder.testForFloat(args[0].toString()) || !ApplicationBuilder.testForFloat(args[1].toString())) {
+						if(!ProcessUtils.testForFloat(args[0].toString()) || !ProcessUtils.testForFloat(args[1].toString())) {
 							arg0 = (float) args[0].toString().length();
 							arg1 = (float) args[1].toString().length();
 						} else {
@@ -359,7 +461,7 @@ public class NativeLibrary extends Library {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						Float arg0;
 						Float arg1;
-						if(!ApplicationBuilder.testForFloat(args[0].toString()) || !ApplicationBuilder.testForFloat(args[1].toString())) {
+						if(!ProcessUtils.testForFloat(args[0].toString()) || !ProcessUtils.testForFloat(args[1].toString())) {
 							arg0 = (float) args[0].toString().length();
 							arg1 = (float) args[1].toString().length();
 						} else {
@@ -435,7 +537,7 @@ public class NativeLibrary extends Library {
 				
 				new Command("int", "?", "Casts the given value into java.lang.Integer") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForFloat(args[0].toString())) {
+						if(!ProcessUtils.testForFloat(args[0].toString())) {
 							application.kill(block, "Unable to convert type " + args[0].getClass().getTypeName() + " into java.lang.Integer");
 							return null;
 						}
@@ -446,7 +548,7 @@ public class NativeLibrary extends Library {
 				
 				new Command("long", "?", "Casts the given value into java.lang.Long") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForFloat(args[0].toString())) {
+						if(!ProcessUtils.testForFloat(args[0].toString())) {
 							application.kill(block, "Unable to convert type " + args[0].getClass().getTypeName() + " into java.lang.Integer");
 							return null;
 						}
@@ -457,7 +559,7 @@ public class NativeLibrary extends Library {
 				
 				new Command("float", "?", "Casts the given object into java.lang.Float") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForFloat(args[0].toString())) {
+						if(!ProcessUtils.testForFloat(args[0].toString())) {
 							application.kill(block, "Unable to convert type " + args[0].getClass().getTypeName() + " into java.lang.Integer");
 							return  null;
 						}
@@ -480,17 +582,89 @@ public class NativeLibrary extends Library {
 					}
 				},
 				
-				new Command("if", "boolean block block", "If statement") {
+				new Command("debug", "", "Just for breakpoints") {
+					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if((Boolean) args[0]) application.executeBlock((Block) args[1], true);
-						else application.executeBlock((Block) args[2], true);
 						return null;
 					}
 				},
 				
-				new Command("if", "boolean block", "If statement") {
+				new Command("listvars", "block ...", "Lists all variables from the block the command is executed in (If no block is specified)") {
+					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if((Boolean) args[0]) application.executeBlock((Block) args[1], true);
+						if(args.length == 0) {
+							application.log("----------\nACCESSIBLE VARIABLES FOR BLOCK " + 
+									(block == application.getMain() ? "[MAIN]" : "[" + block + "]") + " :", true);
+							for(Variable var : block.getAccessibleVariables()) {
+								application.log("Name: " + var.name + "\t\tBlock: " 
+										+ (var.getBlock() == application.getMain() ? "[MAIN]" : "[" + var.getBlock() + "]")
+										+ "\t\tValue: " + application.getVariable(var.name, var.getBlock()), true);
+							}
+							application.log("----------", true);
+						} else if(args.length == 1) {
+							application.log("----------\nACCESSIBLE VARIABLES FOR BLOCK " + args[0] + " :", true);
+							for(Variable var : ((Block) args[0]).getAccessibleVariables()) {
+								application.log("Name: " +  var.name + "\t\tBlock: " 
+										+ (var.getBlock() == application.getMain() ? "[MAIN]" : "[" + var.getBlock() + "]")
+										+ "\t\tValue: " + application.getVariable(var.name, var.getBlock()) + "\n----------", true);
+							}	
+							application.log("----------", true);
+						}
+						return null;
+					}
+				},
+				
+				new Command("?", "boolean ??? ???", "", 1) {
+					@Override
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						if((Boolean) args[0]) {
+							return args[1];
+						} else return args[0];
+					}
+				},
+				
+				new Command("if", "boolean block ? ...", "if $condition { } else {} | if $condition1 { } elseif $condition2 {} else {} ...") {
+					@Override
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						if((Boolean) args[0]) {
+							application.executeBlock((Block) args[1], true);
+							return null;
+						}
+						for(int i = 2; i < args.length; i++) {
+							if(args[i].equals("else")) {
+								if(i + 1 <= args.length) {
+									if(args[i+1] instanceof Block) {
+										application.executeBlock((Block) args[i+1], true);
+										i++;
+									} else application.kill(block, "Expecting a block after boolean expression at argument " + (i + 1));
+								}
+								break;
+							} else if(args[i].equals("elseif")) {
+								if(i + 2 <= args.length) {
+									if(args[i+1] instanceof Boolean) {
+										if((Boolean) args[i+1]) {
+											if(args[i+2] instanceof Block) {
+												application.executeBlock((Block) args[i+2], true);
+												return null;
+											} else {
+												application.kill(block, "Expecting a block after boolean expression at argument " + (i + 1));
+												return null;
+											}
+										}
+										i = i+2;
+									} else {
+										application.kill(block, "Expecting a boolean expression at argument " + (i + 1) + " after " + args[i].toString());
+										return null;
+									}
+								}
+							} else if(args[i] instanceof Block && i == 2) { //Compatibility reasons
+								application.executeBlock((Block) args[i], true);
+								break;
+							} else {
+								application.kill(block, "Unknown if- condition: '" + args[i].toString() + "'. Expecting 'else' or 'elseif' at argument " + (i + 1));
+								return null;
+							}
+						}
 						return null;
 					}
 				},
@@ -504,48 +678,29 @@ public class NativeLibrary extends Library {
 				
 				new Command("for", "string string block", "For loop: for i 10 {...}") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForWholeNumber(args[1].toString())) {
+						if(!ProcessUtils.testForWholeNumber(args[1].toString())) {
 							application.kill(block, "Argument 2 needs to be an integer!");
 							return null;
 						}
 						
 						String iterator = "0";
 						Block b = (Block) args[2];
-						application.removeVariable(args[0].toString(), b);
-						application.setVariable(args[0].toString(), iterator, false, false, b);
+						b.setAsLoop();
+						b.setVariable(args[0].toString(), iterator, false, false, true);
 						
-						b.beginLoop();
 						int length = Integer.valueOf(args[1].toString());
 						a: for(int i = 0; i < length; i++) {
-							application.setVariable(args[0].toString(), String.valueOf(i), false, false, b);
+							b.setVariable(args[0].toString(), String.valueOf(i), false, false, false);
 							if(!b.interrupted()) {
 								iterator = String.valueOf(i);
 								application.executeBlock(b, i == length-1); //Only clear variables, when for loop finished
 								if(i < length-1) i = Integer.valueOf(application.getVariable(args[0].toString(), b).toString());
 							} else break a;
 						}
-						b.endLoop(true);
-						
 						return null;
 					}
 				},
 				
-				new Command("loop", "block", "Infinite loop. Use the break command inside it.") {
-					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						Block b = (Block) args[0];
-						b.beginLoop();
-						while(true) {
-							if(b.isAlive() || b.interrupted()) {
-								application.garbageCollection(b);
-								break;
-							} 
-							application.executeBlock(b, false);
-						}
-						b.endLoop(true);
-						return null;
-					}
-				},
-
 				new Command("break", "", "Breaks out of the next found loop in the stack. If no loop was found, this command interrupts the block") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						
@@ -563,6 +718,45 @@ public class NativeLibrary extends Library {
 					}
 				},
 				
+				new Command("return", "??? ...", "Searches the first occurrence of a block that is a function and returns its given value or null (Block execution gets terminated)") {
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						Block current = block;
+						boolean found = false;
+						while(current != null) {
+							//Also, interrupt loops
+							if(current.isLoop()) 
+								current.interrupt();
+							if(current.isFunction()) {
+								current.alive = false;
+								if(args.length > 0)
+									current.functionReturn = args[0];
+								found = true;
+								break;
+							}
+							current = current.parent;
+						}
+						if(!found) application.warning("The return command has no effect here.");
+						return null;
+					}
+				},
+				
+				new Command("loop", "block", "Infinite loop. Use the break command inside it.") {
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						Block b = (Block) args[0];
+						b.setAsLoop();
+						//b.beginLoop();
+						while(true) {
+							if(b.isAlive() || b.interrupted()) {
+								application.garbageCollection(b);
+								break;
+							} 
+							application.executeBlock(b, false);
+						}
+						b.clearVariables();
+						return null;
+					}
+				},
+
 				new Command("kill", "string ...", "Stops the application and throws an error message") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						if(args.length > 0) application.kill(block, args[0].toString());
@@ -573,7 +767,9 @@ public class NativeLibrary extends Library {
 				
 				new Command("input", "", "Reads input from the set input stream") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						return application.waitForInput();
+						String input = application.waitForInput();
+						if(input == null) return "";
+						return input;
 					}
 				},
 				
@@ -585,17 +781,17 @@ public class NativeLibrary extends Library {
 							return null;
 						}
 						
-						if(checkType.type == Type.INTEGER) return ApplicationBuilder.testForWholeNumber(args[0].toString());
-						else if(checkType.type == Type.FLOAT) return ApplicationBuilder.testForFloat(args[0].toString());
-						else if(checkType.type == Type.NUMBER) return ApplicationBuilder.testForWholeNumber(args[0].toString()) || ApplicationBuilder.testForFloat(args[0].toString());
-						else return ApplicationBuilder.typeMatch(ApplicationBuilder.toDataType(args[0]), checkType);
+						if(checkType.type == Type.INTEGER) return ProcessUtils.testForWholeNumber(args[0].toString());
+						else if(checkType.type == Type.FLOAT) return ProcessUtils.testForFloat(args[0].toString());
+						else if(checkType.type == Type.NUMBER) return ProcessUtils.testForWholeNumber(args[0].toString()) || ProcessUtils.testForFloat(args[0].toString());
+						else return ProcessUtils.typeMatch(ProcessUtils.toDataType(args[0]), checkType);
 					}
 					
 				},
 				
 				new Command("wait", "string", "") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForWholeNumber(args[0].toString())) application.kill(block, "Argument 1 needs to be an integer at command: wait <milliseconds>");
+						if(!ProcessUtils.testForWholeNumber(args[0].toString())) application.kill(block, "Argument 1 needs to be an integer at command: wait <milliseconds>");
 						Thread.sleep(Integer.valueOf(args[0].toString()));
 						return null;
 					}
@@ -611,7 +807,7 @@ public class NativeLibrary extends Library {
 						}, args[0].toString());
 						application.setVariable(args[0].toString(), (Block) args[1], true, false, block);
 						((Block) args[1]).thread = t;
-						((Block) args[1]).isFunction = true;
+						((Block) args[1]).setAsFunction();
 						t.start();
 						return null;
 					}
@@ -665,26 +861,6 @@ public class NativeLibrary extends Library {
 					}
 				},
 				
-				new Command("return", "??? ...", "Searches the first occurrence of a block that is a function and returns its given value or null (Block execution gets terminated)") {
-					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						
-						Block current = block;
-						boolean found = false;
-						while(current != null) {
-							if(current.isFunction) {
-								current.alive = false;
-								current.functionReturn = args[0];
-								found = true;
-								break;
-							}
-							current = current.parent;
-						}
-						if(!found) application.warning("The return command has no effect here.");
-						
-						return null;
-					}
-				},
-				
 				new Command("return", "block", "") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						((Block) args[0]).alive = false;
@@ -694,7 +870,7 @@ public class NativeLibrary extends Library {
 				
 				new Command("charAt", "string string", "[index] [string]") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForWholeNumber(args[0].toString())) {
+						if(!ProcessUtils.testForWholeNumber(args[0].toString())) {
 							application.kill(block, "Argument 1 needs to be an integer!");
 							return null;
 						}
@@ -723,7 +899,7 @@ public class NativeLibrary extends Library {
 				
 				new Command("substring", "string string string", "[string] [begin] [end]") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForWholeNumber(args[1].toString()) || !ApplicationBuilder.testForWholeNumber(args[2].toString())) {
+						if(!ProcessUtils.testForWholeNumber(args[1].toString()) || !ProcessUtils.testForWholeNumber(args[2].toString())) {
 							application.kill(block, "Argument 1 and 2 need to be integer");
 							return null;
 						}
@@ -904,6 +1080,7 @@ public class NativeLibrary extends Library {
 				
 				new Command("listDirectory", "obj", "Returns an array containing all files inside this directory") {
 					@Override
+					@SuppressWarnings("all")
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						return new Array(((File) (args[0])).listFiles());
 					}
@@ -919,7 +1096,7 @@ public class NativeLibrary extends Library {
 				new Command("%", "string string", "[STRING] % [STRING]", 1) {
 					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(!ApplicationBuilder.testForWholeNumber(args[0].toString()) || !ApplicationBuilder.testForWholeNumber(args[1].toString())) {
+						if(!ProcessUtils.testForWholeNumber(args[0].toString()) || !ProcessUtils.testForWholeNumber(args[1].toString())) {
 							application.kill(block, "This command can only handle integers!");
 							return null;
 						}
@@ -938,5 +1115,28 @@ public class NativeLibrary extends Library {
 	public void scriptImport(Process process) {}
 
 	@Override
-	public void scriptExit(Process process, int exitCode, String errorMessage) {}
+	public void scriptExit(Process process, int exitCode, String errorMessage) {
+			if(execErrorReader != null) {
+				try {
+					execErrorReader.close();
+					execErrorReader = null;
+					System.out.println("Reader closed");
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			if(execReader != null) {
+				try {
+					execReader.close();
+					execReader = null;
+					System.out.println("Reader closed");
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(this.process != null) {
+				this.process.destroy();
+			}
+	}
 }

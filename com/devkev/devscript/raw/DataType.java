@@ -1,6 +1,6 @@
 package com.devkev.devscript.raw;
 
-import com.devkev.devscript.raw.ApplicationBuilder.Type;
+import com.devkev.devscript.raw.ProcessUtils.Type;
 
 public class DataType {
 	public final Type type;

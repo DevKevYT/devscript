@@ -1,4 +1,4 @@
-#Devscrip console editor by Sn1pe2win#
+#Devscript console editor by Sn1pe2win#
 
 currentLine = 0;
 lines = [];
@@ -15,20 +15,20 @@ printAll = {
 };
 
 recieveInput = {
-	print $0 ">";
+	print $0 "> ";
 	return (input);
 };
 
 
 printLinesUntil = {
 	for i $0 {
-		print $i ">" $lines[$i];
+		print $i "> " $lines[$i];
 		println "";
 	};
 };
 
 
-exec cls;
+exec "cls";
 call $printHeading;
 
 loop {

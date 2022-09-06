@@ -1,9 +1,15 @@
-#Selection sort example by DevKev#
+#Selection sort example by DevKev for version 1.9.10#
 
-unsorted = [3 4 7 8 9 543 23 7 5 32 1 56 7 65 34 13 5 7  2];
+unsorted = [];
 sorted = [];
 record = 99999;
 index = -1;
+
+for i 200 {
+	unsorted[$i] = (int ((random) * 1000));
+};
+
+println $unsorted;
 
 loop 
 {

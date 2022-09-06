@@ -55,7 +55,7 @@ public class ConsoleMain {
 		if(initGUI) {
 			Window w = new Window();
 			if(filePath != null) {
-				w.openDocument(new File(filePath));
+				w.openDocument(new File(filePath), true);
 			} else if(scriptToExecute != null) {
 				w.setScript(scriptToExecute);
 			}
@@ -73,6 +73,7 @@ public class ConsoleMain {
 					System.err.println("Editor file is missing at: " + URLDecoder.decode(ConsoleMain.class.getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8"));
 					return;
 				}
+				
 				BufferedReader reader = new BufferedReader(new InputStreamReader(ConsoleMain.class.getResourceAsStream("/Editor.txt")));
 				String code  = "";
 				String line = reader.readLine();

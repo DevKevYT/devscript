@@ -5,6 +5,56 @@ NOTICE:
 	Another future plan: Command: "include <abs|rel> <pathToFile>" a command to include external compiled libraries "plug in style".
 	Added in 1.8.0 with the command: import "path_to_jar";
 
+1.9.10:
+	- You can add an array element by adding any value to an array ($array + "newElement") <- This will add a new element to an array. A short version for the "push" command
+	- You can concatenate two arrays using the "+" command now
+	- You can use a tenary command for shorter if statements:
+		println ($condition ? "Condition is true" "Condition is false")
+	- Enhanced if statements. Instead of writing this:
+		if $condition {
+			println "true";
+		} {
+			println "false";
+		}
+	  It will now look like this:
+	  	if $condition {
+	  	
+	  	} else {
+	  	
+	  	}
+	  Also elseif is now possible which wasnt even a thing before 1.9.10. The new if- command is compatible with the old version!
+	  More info: file > Examples > tutorials > Variables and conditionals
+	- You can use "?" as array index to let Devscript choose a random entry for you:
+		colors = [black blue gray white];
+		print $colors[?];
+	- You can now use \n and \t inside Strings
+	- You can also now put line breaks and tabs using the $n and $t variables. Example:
+		println "this is one line" $n "this is another line";
+		println "before tab" $t "after tab";
+	- Provided more examples and better tutorials
+	- Fixed an error where the "applicationListener" listener was not fired properly when a script was finished.
+	- MASSIVELY improved the performance. Prepare for LIGHTNING SPEED AND EFFICIENCY!
+	- Removed the "dict" datatype
+	- You can now access dictionary (aka. "objects") properties with the standart "." notation.
+	  Instead of this (Even worse with nested objects):
+	  	dict = (createdict);
+	  	set $dict variable "some-variable";
+	  	println (get $dict variable);
+	  Your script will now look like this:
+	  	dict = (new-object {});
+	  	dict.variable = "cool";
+	  	println $dict.variable;
+	 More info under file > Examples > tutorials > Objects in the DevScript GUI Editor
+
+1.9.9:
+	- Added the option to add custom properties to commands using the Property.of(name, data) function
+
+1.9.7:
+	- Added Option to make commands not case sensitive.
+	  Process.setCaseSensitive(true/false);
+	  If true, the command 'println Test' is the same as 'PrInTLN Test'
+	- Code cleanup
+
 1.9.6:
 	- Added error stream to "exec" command
 	

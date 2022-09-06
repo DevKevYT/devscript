@@ -2,9 +2,10 @@ package com.devkev.devscript.raw;
 
 import java.util.ArrayList;
 
-import com.devkev.devscript.raw.ApplicationBuilder.Type;
+import com.devkev.devscript.raw.ProcessUtils.Type;
 
-public class Array { //For dataContainers
+public class Array {
+	
 	private final ArrayList<Object> indexes = new ArrayList<Object>(2);
 	public DataType arrayType;
 	
@@ -44,9 +45,9 @@ public class Array { //For dataContainers
 	public void updateArraytype() {
     	Type type = Type.NULL;
 		for(int j = 0; j < indexes.size(); j++) {
-			DataType containerType = ApplicationBuilder.toDataType(indexes.get(j));
+			DataType containerType = ProcessUtils.toDataType(indexes.get(j));
 			if(j > 0) {
-				DataType indexType = ApplicationBuilder.toDataType(indexes.get(j-1));
+				DataType indexType = ProcessUtils.toDataType(indexes.get(j-1));
 				if(indexType.type != containerType.type && type != Type.ANY) {
 					type = Type.ANY;
 					break;

@@ -25,9 +25,19 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.stream.Stream;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -54,11 +64,15 @@ import javax.swing.text.StyleContext;
 
 import com.devkev.devscript.raw.ApplicationInput;
 import com.devkev.devscript.raw.ApplicationListener;
+import com.devkev.devscript.raw.Block;
+import com.devkev.devscript.raw.Command;
+import com.devkev.devscript.raw.ConsoleMain;
+import com.devkev.devscript.raw.Library;
 import com.devkev.devscript.raw.Output;
 import com.devkev.devscript.raw.Process;
 
 public class Window {
-	
+	//TODO add case sensitive option
 	JFrame window;
 	int fontSize = 12;
 	JMenuBar bar;
@@ -72,7 +86,7 @@ public class Window {
 	
 	private static Font font;
 	private File openedFile = null; //Null means, creating a new file when saving.
-	private static final String TITLE = "Devscript 1.9.3 Editor ";
+	private static String TITLE = "Devscript 1.9.7 Editor ";
 	private ArrayList<String> history = new ArrayList<String>();
 	private int historyIndex = 0;
 	public int maxHistorySize = 50;
@@ -80,12 +94,23 @@ public class Window {
 	JLayeredPane layerPane;
 	JPanel previewContainer;
 	JLabel commandPreview;
+	File exampleRoot;
+	//File exampleRoot = new File(getClass().getClassLoader().getResource("Examples/").toURI());
+	
+	FileSystem fileSystem;
 	
 	public Window() {
+//		try {
+//			exampleRoot = Paths.get(getClass().getClassLoader().getResource("Examples/").toURI()).toFile();
+//			System.out.println(exampleRoot);
+//		} catch (URISyntaxException e2) {
+//			e2.printStackTrace();
+//		}
+		
 		try {
 	        UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
 	    } catch (Exception evt) {}
-		font = new Font("Consolas", Font.PLAIN, 13);
+		font = new Font("Consolas", Font.TYPE1_FONT, 13);
 		
 		window = new JFrame(TITLE + " - unsaved");
 		window.setVisible(true);
@@ -106,9 +131,11 @@ public class Window {
 		window.setMinimumSize(new Dimension(180, 180));
 		
 		p = new Process(true);
+		TITLE = "Devscript " + p.version + " Editor ";
+		window.setTitle(TITLE);
 		p.addOutput(new Output() {
 			public void warning(String message) {
-				console.append("[WARN]" + message + "\n");
+				console.append("[WARN] " + message + "\n");
 				consolePane.getVerticalScrollBar().setValue(consolePane.getVerticalScrollBar().getMaximum());
 			}
 			public void log(String message, boolean newline) {
@@ -127,10 +154,26 @@ public class Window {
 				console.setEnabled(true);
 				inputStart = console.getText().length();
 				console.setCaretPosition(inputStart);
-				console.setCaretColor(Color.blue);
+				console.setCaretColor(Color.black);
 			}
 		};
 		p.setInput(input);
+		p.includeLibrary(new Library("Custom DevScript Editor Commands") {
+			public void scriptImport(Process process) { }
+			public void scriptExit(Process process, int exitCode, String errorMessage) {}
+			@Override
+			public Command[] createLib() {
+				return new Command[] {
+					new Command("clearConsole", "", "Clears the console") {
+						@Override
+						public Object execute(Object[] args, Process application, Block block) throws Exception {
+							console.setText("");
+							return null;
+						}
+					},
+				};
+			}
+		});
 		p.setApplicationListener(new ApplicationListener() {
 			public void done(int exitCode) {
 				runWindow.setTitle("Finished with Exit Code " + exitCode);
@@ -142,7 +185,8 @@ public class Window {
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyEventDispatcher() {
 			@Override
 			public boolean dispatchKeyEvent(KeyEvent e) {
-				if(e.getKeyCode() == KeyEvent.VK_ENTER && input.inputRequested() && waitForEnter) {
+				
+				if(e.getKeyCode() == KeyEvent.VK_ENTER && input.inputRequested() && waitForEnter && e.getID() == KeyEvent.KEY_RELEASED) {
 					input.flush(console.getText().substring(inputStart, console.getCaretPosition()) + "\n");
 					waitForEnter = false;
 					console.setCaretColor(Color.black);
@@ -210,7 +254,7 @@ public class Window {
 				JFileChooser chooser = new JFileChooser();
 				int res = chooser.showOpenDialog(new JFrame());
 				if(res == JFileChooser.APPROVE_OPTION) {
-					openDocument(chooser.getSelectedFile());
+					openDocument(chooser.getSelectedFile(), true);
 				} else {
 					window.setEnabled(true);
 				}
@@ -235,88 +279,13 @@ public class Window {
 		});
 		m.add(saveFile);
 		m.addSeparator();
+		
+		
+		//Examples and tutorials //
+		
 		JMenu examples = new JMenu("Examples");
-		
-		JMenuItem selectionSort = new JMenuItem("Selection Sort");
-		selectionSort.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				openDocument(null);
-				textArea.setText("#Selection sort example by DevKev#\r\n" + 
-						"\r\n" + 
-						"unsorted = [3 4 7 8 9 543 23 7 5 32 1 56 7 65 34 13 5 7  2];\r\n" + 
-						"sorted = [];\r\n" + 
-						"record = 99999;\r\n" + 
-						"index = -1;\r\n" + 
-						"\r\n" + 
-						"loop" + 
-						" {\r\n" + 
-						"	for i (length $unsorted) \r\n" + 
-						"	{\r\n" + 
-						"		if ($unsorted[$i] lt $record) \r\n" + 
-						"		{\r\n" + 
-						"			record = $unsorted[$i];\r\n" + 
-						"			index = $i;\r\n" + 
-						"		};\r\n" + 
-						"	};\r\n" + 
-						"\r\n" + 
-						"	push $unsorted[$index] $sorted;\r\n" + 
-						"	pop $unsorted $index;\r\n" + 
-						"	record = 99999;\r\n" + 
-						"	\r\n" + 
-						"	if ((length $unsorted) == 0) \r\n" + 
-						"	{\r\n" + 
-						"		break;\r\n" + 
-						"	};\r\n" + 
-						"};\r\n" + 
-						"\r\n" + 
-						"println \"Done\";\r\n" + 
-						"println $sorted;");
-			}
-		});
-		examples.add(selectionSort);
-		
-		JMenuItem calculator = new JMenuItem("Calculator");
-		calculator.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				openDocument(null);
-				textArea.setText("#Simple calculator with input#\r\n" + 
-						"#Should also be an example for functions#\r\n" + 
-						"\r\n" + 
-						"calculate = {\r\n" + 
-						"	num1 = $0; #Better names#\r\n" + 
-						"	num2 = $1;\r\n" + 
-						"	operator = $2;\r\n" + 
-						"\r\n" + 
-						"	ifnot (($num1 typeof num) or ($num2 typeof num))\r\n" + 
-						"	{\r\n" + 
-						"		println \"Error\";\r\n" + 
-						"		return;\r\n" + 
-						"	};\r\n" + 
-						"\r\n" + 
-						"	if ($operator == +)\r\n" + 
-						"	{\r\n" + 
-						"		return ($num1 + $num2);\r\n" + 
-						"	};\r\n" + 
-						"	if ($operator == -) \r\n" + 
-						"	{	\r\n" + 
-						"		return ($num1 - $num2);\r\n" + 
-						"	};\r\n" + 
-						"	println \"Error, unknown operator: \" $operator;\r\n" + 
-						"};\r\n" + 
-						"\r\n" + 
-						"print \"Enter first number: \";\r\n" + 
-						"num1 = (input);\r\n" + 
-						"print \"Enter second number: \";\r\n" + 
-						"num2 = (input);\r\n" + 
-						"print \"Enter operator (+, -): \";\r\n" + 
-						"operator = (input);\r\n" + 
-						"\r\n" + 
-						"println \"Calculating...\";\r\n" + 
-						"println (call $calculate $num1 $num2 $operator);");
-			}
-		});
-		examples.add(calculator);
-		
+		walkDemoPath("/Examples", examples);
+
 		m.add(examples);
 		bar.add(m);
 		
@@ -366,7 +335,7 @@ public class Window {
 		bar.add(m2);
 		
 		JMenu m3 = new JMenu("Run");
-		JMenuItem run = new JMenuItem(getFormattedBarText("Run in Shell"));
+		JMenuItem run = new JMenuItem(getFormattedBarText("Run"));
 		run.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0));
 		run.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -376,6 +345,7 @@ public class Window {
 				runWindow.setTitle("Running...");
 				runWindow.setVisible(true);	
 				window.setEnabled(false);
+				p.setCaseSensitive(false);
 				p.execute(textArea.getText(), true);
 			}
 		});
@@ -394,44 +364,8 @@ public class Window {
 				p.execute("help", false);
 			}});
 		m4.add(commandCC);
-		JMenuItem help = new JMenuItem("Tutorial");
-		help.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				ProcessBuilder pb = new ProcessBuilder("Notepad.exe", "README.md");
-				try {
-					pb.start();
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}				
-			}
-		});
-		m4.add(help);
-		JMenuItem license = new JMenuItem("License");
-		license.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				ProcessBuilder pb = new ProcessBuilder("Notepad.exe", "LICENSE");
-				try {
-					pb.start();
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}	
-			}
-		});
-		JMenuItem changelog = new JMenuItem("Changelog");
-		changelog.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				ProcessBuilder pb = new ProcessBuilder("Notepad.exe", "changelog.txt");
-				try {
-					pb.start();
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
-			}
-		});
-		m4.add(changelog);
-		m4.add(license);
 		m4.addSeparator();
-		JMenuItem about = new JMenuItem("About / GitHub");
+		JMenuItem about = new JMenuItem("Changelog");
 		about.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				try {
@@ -491,11 +425,104 @@ public class Window {
 		window.setSize(500, 500);
 	}
 	
+	private boolean isPath(String path) {
+		try {
+			URI uri = ConsoleMain.class.getResource(path).toURI();
+	        Path myPath;
+	        if (uri.getScheme().equals("jar")) {
+	        	if(fileSystem == null) {
+	        		fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap());
+	        	}
+	            myPath = fileSystem.getPath(path);
+	        } else {
+	            myPath = Paths.get(uri);
+	        }
+	        Stream<Path> walk = Files.walk(myPath, 1);
+	        for (Iterator<Path> it = walk.iterator(); it.hasNext();){
+	        	Path p = it.next();
+	        	if(!p.toString().equals(path)) {
+	        		walk.close();
+	        		return  true;
+	            }
+	        }
+	        walk.close();
+	        return false;
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+	
+	private int walkDemoPath(String path, JMenu parent) {
+		try {
+			URI uri = ConsoleMain.class.getResource(path).toURI();
+	        Path myPath;
+	        if (uri.getScheme().equals("jar")) {
+	        	if(fileSystem == null) {
+	        		fileSystem = FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap());
+	        	}
+	            myPath = fileSystem.getPath(path);
+	        } else {
+	            myPath = Paths.get(uri);
+	        }
+	        Stream<Path> walk = Files.walk(myPath, 1);
+	        int fileCount = 0;
+	        for (Iterator<Path> it = walk.iterator(); it.hasNext();){
+	        	Path p = it.next();
+	        	if(!p.toString().equals(path)) {
+		        	if(isPath(p.toString())) {
+		        		JMenu menu = new JMenu(p.getFileName().toString().replace("/", ""));
+						parent.add(menu);
+						walkDemoPath(p.toString(), menu);
+		        	} else {
+		        		JMenuItem example = new JMenuItem();
+						example.setText(p.getFileName().toString());
+						example.addActionListener(new ActionListener() {
+							public void actionPerformed(ActionEvent arg0) {
+								try {
+									openDocumentByStream(p.toString());
+								} catch (IOException e) {
+									e.printStackTrace();
+									window.setEnabled(true);
+								}
+							}
+						});
+						parent.add(example);
+		        	}
+	        	}
+	        }
+	        walk.close();
+	        return fileCount;
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		return -1;
+	}
+	
 	public void setScript(String script) {
 		appendToPane(textArea, script, Color.black);
 	}
 	
-	public void openDocument(File file) {
+	private void openDocumentByStream(String path) throws IOException {
+		history.clear();
+		textArea.setText("");
+		
+		try (InputStream in = getClass().getResourceAsStream(path);
+			BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+			String line = reader.readLine();
+			while(line != null) {
+				appendToPane(textArea, line + "\n", Color.black);
+				line = reader.readLine();
+			}
+			reader.close();
+			textArea.setCaretPosition(0);
+			window.setEnabled(true);
+			window.toFront();
+			window.setTitle(TITLE);
+		}
+	}
+	
+	public void openDocument(File file, boolean save) {
 		try {
 			history.clear();
 			textArea.setText("");
@@ -508,9 +535,10 @@ public class Window {
 				}
 				reader.close();
 			}
+			if(save) openedFile = file;
+			textArea.setCaretPosition(0);
 			window.setEnabled(true);
 			window.toFront();
-			openedFile = file;
 			window.setTitle(TITLE);
 		} catch (Exception e1) {
 			e1.printStackTrace();
