@@ -1,0 +1,31 @@
+#LOOP BASICS by DevKev made for version 1.9.10#
+
+#Create a for-loop#
+	for var 10 {
+		println $var;
+	};
+
+
+#Create an infinite loop#
+	loop {
+		break;
+	};
+
+
+#You can break out of any loop with "break" or "return" ("return"  would exit the script, because it would return out of the main method!)#
+	loop {	
+		break;
+	};
+	for i 100 {
+		println "Iteration " $i;
+		if ($i == 3) {
+			break;
+		};	
+	};
+
+
+#Loop through an array#
+	array = [Peter Carl Walter];
+	for i (length $array) {
+		println $array[$i];
+	}

@@ -1,0 +1,34 @@
+#Simple calculator with input#
+#Should also be an example for functions#
+
+calculate = {
+	num1 = $0; #Better names#
+	num2 = $1;
+	operator = $2;
+
+	ifnot (($num1 typeof num) or ($num2 typeof num))
+	{
+		println "Error";
+		return;
+	};
+
+	if ($operator == +)
+	{
+		return ($num1 + $num2);
+	};
+	if ($operator == -) 
+	{	
+		return ($num1 - $num2);
+	};
+	println "Error, unknown operator: " $operator;
+};
+
+print "Enter first number: ";
+num1 = (input);
+print "Enter second number: ";
+num2 = (input);
+print "Enter operator (+, -): ";
+operator = (input);
+
+println "Calculating...";
+println (call $calculate $num1 $num2 $operator);

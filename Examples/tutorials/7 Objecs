@@ -1,0 +1,89 @@
+#[OBJECT BASICS made by DevKev for version 1.9.10]#
+
+
+#Create an empty object#
+	myObject = (new-object {});
+
+
+#Assign a variable to your object#
+	myObject.foo = 10;
+
+
+#Modify a variable from your object#
+	myObject.foo = 20;
+
+
+#Access object properties#
+	println $myObject.foo;
+
+
+#Remember, functions are just variables in DevScript (Tutorial 5)#
+#Notice: $foo refers to the previously created variable "foo" inside "myObject"#
+	myObject.printVariables = {
+		println $foo;
+	};
+
+
+#Call the function!#
+	call $myObject.printVariables;
+
+
+#Create an object with properties. The block kind of acts as
+a constructor and is being executed when the object is created
+"myObject2" will essentially create the same result, but "foo" being "30"#
+	myObject2 = (new-object {
+		foo = 30;
+		printVariables = {
+			println $foo;
+		};
+		println "'myObject2' Created!";
+	});
+	call $myObject2.printVariables;
+
+
+#Variables created inside of objects have the same scope as other languages or scripts#
+	x = "outer";
+	myObject3 = (new-object {
+		#We can access x#
+		println $x;
+		#But we can't modify it! This will create a new variable inside 'myObject3'#
+		x = "inner";
+		#Now we will print the 'x' that belongs to 'myObject3'#
+		println $x;
+	});
+	#The outer 'x' will stay the same#
+	println $x;
+
+
+#Remember in Tutorial 5 when we talked about block flags? Here you can see a block flag in action!#
+	println $myObject3;		#<- This will print BLOCK:FO 1	(O=Object, F=Function)
+
+
+#Create a set of objects#
+cars = [];
+colors = [black blue gray white];
+brand = [mercedes bmw porsche vw];
+
+for i 4 {
+	cars[$i] = (new-object {
+		driven = (int ((random) * 100000));
+		color = $colors[?];
+		brand = $brand[?];
+		id = $i;
+		printCarProperties = {
+			println "Brand: " $brand;
+			println "Driven km: " $driven "km";
+			println "Color: " $color;
+		};
+	});
+};
+
+#The first car should always be yellow#
+cars[0].color = yellow;
+
+#Print the cars#
+for i (length $cars) {
+	println "Car " $cars[$i].id;
+	call $cars[$i].printCarProperties;
+	println;
+};

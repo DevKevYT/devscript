@@ -1,0 +1,120 @@
+#Hangman by DevKev for version 1.9.10#
+
+words = [tree devscript script java command block array thread];
+word = "";
+guessed = [];
+wordsplit = [];
+blacklist = [];
+
+drawScreen = {
+	try {
+		exec cls;
+		clearConsole;
+	};
+	
+	allright = $true;
+	for i (length $wordsplit) {
+		if ($guessed[$i] != " ") {
+			print $guessed[$i] "\t";
+		} else {
+			print "_\t";
+			allright = $false;
+		};
+	};
+	
+	if $allright {
+		call $drawEndScreen $true;
+		return;
+	};
+
+	println "\n\n";
+	println "LIFE [" $life "]";
+	characters = "";
+	for i (length $blacklist) {
+		characters = (($characters + " ") + $blacklist[$i]);
+	};
+	println "Wrong Guesses: "  $characters;
+	println;
+};
+
+drawEndScreen = {
+	try {
+		exec cls;
+		clearConsole;
+	};
+	
+	if $0 {
+		println " \tY O U    W O N !";
+	} else {
+		println " \tY O U    L O S T !";
+	};
+	println;
+	println "\tThe word was: '" $word "'";
+	println "\tYou had " $life " lives left";
+	println "\n\tPlay again? Press [ENTER]";
+	input;
+	call $chooseWord;
+	call $drawScreen;
+};
+
+guess = {
+	char = $0;
+	for i (length $blacklist) {
+		if ($blacklist[$i] == $char) {
+			println "lool";
+			return $false;
+		};
+	};
+	right = $false;
+	for i (length $wordsplit) {
+		if ($wordsplit[$i] == $char) {
+			guessed[$i] = $char;
+			right = $true;
+		};
+	};
+	return $right;
+};
+
+chooseWord = {
+	life = 10;
+	word = $words[?];
+	guessed = [];
+	wordsplit = [];
+	blacklist = [];
+	for i (stringLength $word) {
+		wordsplit[$i] = (charAt $i $word);
+		guessed[$i] = " ";
+	};
+};
+
+addToBlacklist = {
+	for i (length $blacklist) {
+		if ($blacklist[$i] == $0) {
+			return;
+		};
+	};
+	push $0 $blacklist;
+};
+
+call $chooseWord;
+life = 10;
+loop {
+	call $drawScreen;
+	print "Guess a character: ";
+	character = (input);
+
+	if ((stringLength $character) gt 0) {
+		character = (charAt 0 $character);
+		right = (call $guess $character);
+		ifnot $right {
+			life = ($life - 1);
+			call $addToBlacklist $character;
+			if ($life == 0) {
+				call $drawEndScreen $false;
+			};
+		};
+	};
+}
+
+
+
