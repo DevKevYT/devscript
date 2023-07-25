@@ -1,0 +1,70 @@
+#ARRAYS by DevKev for version 1.9.10#
+
+#Declare a variable as an array using "[" and "]"#
+	emptyArray = [];
+	println $emptyArray;
+
+
+#To declare filled arrays, use the same method, but separate different entries with a space character inside "[" and "]"#
+	filledStringArray = ["test1" "test2" "test3"];
+	filledIntegerArray = [1 2 3];
+	println $filledStringArray;
+
+
+#All arrays are dynamic and can hold different datatypes and can resolve variables and wrapped commands#
+	chaoticArray = ["String" (1 + 1) $filledStringArray {}]; #<- A single array with 4 different data types: String, Array, Block#
+	println $chaoticArray;
+
+
+#You can also create arrays with multiple dimensions by just putting arrays into arrays
+This will create a grid of 4x4 made of "+" when printed properly#
+	grid = [[+ - + +] [+ + + +] [+ + + +] [+ + + +]];
+
+
+#You can access array indices like any other language.#
+	index = 0;
+	println $filledStringArray[0];
+	println $filledStringArray[$index]; #<- Using a variable. Maybe the famous $i in for- loops?#
+	println $grid[0][1];
+
+
+#You can modify array indices like in Tutorial 2 without the "$"#
+	index = 1;
+	filledStringArray[0] = "First Element!";
+	grid[0][$index] = "+"; 		#<- Lets repair the grid!#
+	println $filledStringArray[0];
+	println $grid;
+
+
+#There are 3 methods to extend arrays:
+You can add array elements simply by choosing any index that is out of bounds (>= 0)
+You can also use the "push [value] [array]" to extend arrays
+The third method would be to use the "[???] + [???]" command#
+	emptyArray[5] = 10;			#This will automatically fill 0 - 4 with $null and make the array length 6#
+	println $emptyArray;
+	
+	#Here is a list of all the methods to expand an array:#
+	#Method 1:#
+	push "10" $filledIntegerArray;		#Expand by using the "push" command (push the value "10" into $filledIntegerArray)#
+	
+	#Method 2:#
+	length = (length $filledIntegerArray); 	#Expand by finding out the length and expanding with the "out-of-bounds" method#
+	filledIntegerArray[$length] = 10;	
+	
+	#Method 3:#
+	$filledIntegerArray + "newValue"	#add the String "newValue" to the array using the "+" command. But this method can be confusing, because you need to use the $ sign even if you modify the variable
+	filledIntegerArray = ($filledIntegerArray + "newValue")	#This method has the same result and is a bit more readable#
+	
+#You can remove array elements using the "pop [array] [index]" command#
+	pop $emptyArray 5;
+	println $emptyArray;
+
+#You can check Array types (If, for example an Array has only Strings (-> "String Array") 
+or the array contains multiple data types) using the "typeof" command
+IMPORTANT: If you want to use the "typeof" command to check array types, remember to put an array indicator (@) at the beginning!
+@String != String (-> Array of Strings does not equal a single String)#
+	println ($filledStringArray typeof "@String"); 	#prints true: There are only strings in the array#
+	println ($chaoticArray typeof "@?");		#prints true: This array contains multiple data types, is "any" (?)#
+	println ($chaoticArray typeof "@block");		#println true: WHY?! This is kind of a special case. Since the type is "any", it is also "block", "string", "array" and so on and will always return true no matter what array type#
+	println ($filledStringArray typeof "@?");		#prints false: This is the String array#
+

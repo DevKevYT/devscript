@@ -5,6 +5,15 @@ NOTICE:
 	Another future plan: Command: "include <abs|rel> <pathToFile>" a command to include external compiled libraries "plug in style".
 	Added in 1.8.0 with the command: import "path_to_jar";
 
+1.9.12 (Work in Progress):
+	TODO: Devscript can't handle null Variables :(
+
+1.9.11:
+	- Fixed try command issue with loops
+	- Added sqrt function (Square root)
+	- Added sin, cos and tan commands (They obviously act like sin, cos and tan functions in math, arguments in degrees)
+	- Added PI constant as variable
+	
 1.9.10:
 	- You can add an array element by adding any value to an array ($array + "newElement") <- This will add a new element to an array. A short version for the "push" command
 	- You can concatenate two arrays using the "+" command now
