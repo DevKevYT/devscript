@@ -1,0 +1,297 @@
+#                 [[ RAYCAST EXAMPLE BY DEVKEV AKA PHILIPP GERSCH 30.08.23 ]]                            #
+#    This Example renders a pseudo 3d scene using raycasting and drawing is using ascii characters       #
+#          I do not not recommend creating stuff like this yourself using this language.                 #
+# This example should only show the capabilities of this language and the overall acceptable performance #
+
+# The view will rotate automatically, but you could enable controls if you want. You can also add more walls using the variables bofore the MAIN loop #
+# If manual control is enabled, you can move and look around using the W A S D keys #
+
+MANUAL_CONTROL = $false;
+
+
+sizeX = 100;
+sizeY = 30;
+pixels = [];
+tileSize = 10;
+
+for i $sizeY {
+	row = [];
+	for j $sizeX {
+		row[$j] = " ";
+	};
+	pixels[$i] = $row;
+};
+
+#-----------------------------------------#
+#UTILS#
+
+#Returns a new object with two dimenstions x and y#
+point = {
+	return (new-object {x = $0;y = $1});
+};
+
+#Calculates the distance between two points#
+dist = {
+	dx = ($0 - $2);
+	dy = ($1 - $3);
+	return (sqrt (($dx * $dx) + ($dy * $dy)));
+};
+
+#-----------------------------------------#
+#OBJECT CREATION#
+
+#Creates a new wall#
+new-wall = {
+	return (new-object {
+		#Create coordinates on the grid#
+		x1 = ($0 * $tileSize);
+		y1 = ($1 * $tileSize);
+		x2 = ($2 * $tileSize);
+		y2 = ($3 * $tileSize);
+	});
+};
+
+#Creates a new ray object#
+new-ray = {
+	return (new-object {
+		x = $0;
+		y = $1;
+		dirX = $2;
+		dirY = $3;
+
+		collisionX = 0;
+		collisionY = 0;
+		dist = -1;
+		angle = 0;
+
+		#Argument 0 needs to be a wall object. Returns a new point#
+		cast = {
+			wall = $0;
+			
+			ifnot ($dirY typeof float) {
+				dirY = 0;
+			};
+			ifnot ($dirX typeof float) {
+				dirX = 0;
+			};
+
+			x1 = $x;
+			x3 = $wall.x1;
+			x4 = $wall.x2;
+			y3 = $wall.y1;
+			y4 = $wall.y2;
+			x2 = ($x + ($dirX * "100"));
+			y1 = $y;
+			y2 = ($y + ($dirY * "100"));
+
+			nenner = ((($x1 - $x2) * ($y3 - $y4)) - (($y1 - $y2) * ($x3 - $x4)));
+
+			if ($nenner == 0) {
+				return "";
+			};
+
+			tt = (((($x1 - $x3) * ($y3 - $y4)) - (($y1 - $y3) * ($x3 - $x4))) / $nenner);
+			uu = (((($x1 - $x2) * ($y1 - $y3)) - (($y1 - $y2) * ($x1 - $x3))) / $nenner);
+			
+			ifnot ($uu typeof float) {
+				return "";
+			};
+		
+			uu = ($uu * -1);
+
+			if (($tt gt 0) and ($uu gt 0) and ($uu lt 1)) {
+				rx = ($tt * ($x2 - $x1));
+				ry = ($tt * ($y2 - $y1));
+				return (call $point ($x1 + $rx) ($y1 + $ry));
+			};
+			return "";
+		};
+	});
+};
+
+new-point = {
+	return (new-object {
+		x = (($0 * $tileSize) + ($tileSize / 2));
+		y = (($1 * $tileSize) + ($tileSize / 2));
+		rayCount = $2;
+		fov = $3;
+		rays = [];
+
+		angleStep = ($fov / $rayCount);
+		angle = (($fov / 2) + ($angleStep / 2));
+		direction = (call $point 0 0);
+		println $angleStep;
+		
+		for i $rayCount {
+			angle = ($angle + $angleStep);
+			println "Setting ray at " $angle " degrees";
+			rays[$i] = (call $new-ray $x $y (cos $angle) (sin $angle));
+		};
+		angle = 0;
+
+		setPos = {
+			x = $0;
+			y = $1;
+			
+			for i $rayCount {
+				rays[$i].x = $0;
+				rays[$i].y = $1;
+			};
+		};
+	
+		setAngle = {
+			direction = (call $point (cos $0) (sin $0));
+			angle = $0;
+			angleCount = 0;
+			for i $rayCount {
+				rays[$i].angle = (($angleCount - ($fov / 2)) + ($angleStep / 2));
+				rays[$i].dirX = (cos ($angle + $rays[$i].angle));
+				rays[$i].dirY = (sin ($angle + $rays[$i].angle));
+				angleCount = ($angleCount + $angleStep);
+			};
+		};
+
+		cast = {
+			walls = $0;
+			for i $rayCount {
+				recordPos = "";
+				for j (length $walls) {
+					castPos = (call $rays[$i].cast $walls[$j]);
+					if ($castPos != "") {
+						if ($recordPos == "") {
+							recordPos = $castPos;
+						} else {
+							distRecord = (call $dist $recordPos.x $recordPos.y $rays[$i].x $rays[$i].y);
+							dist = (call $dist $castPos.x $castPos.y $rays[$i].x $rays[$i].y);
+							if ($dist lt $distRecord) {
+								recordPos = $castPos;
+							};
+						};
+					};
+				};
+				
+				if ($recordPos != "") {
+					rays[$i].dist = (call $dist $recordPos.x $recordPos.y $rays[$i].x $rays[$i].y);
+					rays[$i].collisionX = $recordPos.x;
+					rays[$i].collisionY = $recordPos.y;
+				} else {
+					rays[$i].dist = -1;
+				};
+			};
+		};
+	});
+};
+
+#-----------------------------------------#
+#DRAWING AND RENDERING#
+
+drawScreen = {
+	
+	for i $sizeY {
+		print "|";
+		for j $sizeX {
+			print $pixels[$i][$j];
+		};
+		print "|";
+		println;
+	};
+};
+
+clearBuffer = {
+	for i $sizeY {
+		for j $sizeX {
+			pixels[$i][$j] = " ";
+		};
+		println;
+	};
+};
+
+#Paints a pixel to the buffer#
+paint = {
+	x = (string (int $0));
+	y = (string (int $1));
+	if (($x lt $sizeX) and ($y lt $sizeY) and ($x gteq 0) and ($y gteq 0)) {
+		pixels[$y][$x] = $2;
+	}
+};
+
+
+#-----------------------------------------#
+#MAIN#
+
+# Every wall has a start x and y and end x and y coordinate #
+walls = [
+ (call $new-wall -3 0 1 0)
+ (call $new-wall 2 0 1 1)
+ (call $new-wall 1 1 -2 1)
+];
+
+anchor = (call $new-point 0 0 $sizeX 90);
+lastInput = "";
+pixelStep = (string (int ($sizeX / $anchor.rayCount)));
+
+loop {
+	call $anchor.cast $walls;
+	call $clearBuffer;
+
+	for i (length $anchor.rays) {
+		if ($anchor.rays[$i].dist != -1) {
+			actualDistance = ($anchor.rays[$i].dist * (cos $anchor.rays[$i].angle));
+			height = (((4 / $actualDistance) * $sizeY) / 2);
+			for k $pixelStep {
+				x = (($pixelStep * $i) + $k);
+				topY = (($sizeY / 2) - $height);
+				botY = (($sizeY / 2) + $height));
+				for y (string (int ($botY - $topY))) {
+					if ($anchor.rays[$i].dist lt 8) {
+						call $paint $x ($y + $topY) <#>;
+					} elseif ($anchor.rays[$i].dist lt 12) {
+						call $paint $x ($y + $topY) <+>;
+					} else {
+						call $paint $x ($y + $topY) <.>;
+					};
+				};
+				call $paint $x $topY "_";
+				call $paint $x $botY "@";
+			};
+			firstRay = $true;
+		};
+	};
+	
+	try {
+		exec "cls";
+		clearConsole;
+	};
+	call $drawScreen;
+
+
+	if (not $MANUAL_CONTROL) {
+		call $anchor.setAngle (($anchor.angle + 15) % 360);
+	} else {
+
+		println "\nangle: " $anchor.angle;
+		println "x: " $anchor.x;
+		println "y: " $anchor.y;
+
+		print "Move: ";
+		dir = (input);
+		if ($dir == "") {
+			dir = $lastInput;
+		};
+
+		if ($dir == d) {
+			call $anchor.setAngle (($anchor.angle + 30) % 360);
+			lastInput = d;
+		} elseif ($dir == a) {
+			call $anchor.setAngle (($anchor.angle - 30) % 360);
+			lastInput = a;
+		} elseif ($dir == w) {
+			call $anchor.setPos ($anchor.x + (($anchor.direction.x / 2) * $tileSize)) ($anchor.y + (($anchor.direction.y / 2) * $tileSize));
+			lastInput = w;
+		} elseif ($dir == s) {
+			call $anchor.setPos ($anchor.x - (($anchor.direction.x / 2) * $tileSize)) ($anchor.y - (($anchor.direction.y / 2) * $tileSize));
+			lastInput = s;
+		};
+	}
+};
+

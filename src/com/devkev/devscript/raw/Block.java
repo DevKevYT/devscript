@@ -207,7 +207,7 @@ public class Block { //So stupid...
 		else if(name.equals("null")) return Process.UNDEFINED;
 		else if(name.equals("n")) return "\n";
 		else if(name.equals("t")) return "\t";
-		else if(name.equals("PI")) return Math.PI;
+		else if(name.equals("PI")) return "3.1415";
 		
 		for(Variable var : variables) {
 			if(var.name.equals(name))

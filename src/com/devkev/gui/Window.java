@@ -86,7 +86,7 @@ public class Window {
 	
 	private static Font font;
 	private File openedFile = null; //Null means, creating a new file when saving.
-	private static String TITLE = "Devscript 1.9.7 Editor ";
+	private static String TITLE = "Devscript 1.9.12 Editor ";
 	private ArrayList<String> history = new ArrayList<String>();
 	private int historyIndex = 0;
 	public int maxHistorySize = 50;
@@ -95,17 +95,9 @@ public class Window {
 	JPanel previewContainer;
 	JLabel commandPreview;
 	File exampleRoot;
-	//File exampleRoot = new File(getClass().getClassLoader().getResource("Examples/").toURI());
-	
 	FileSystem fileSystem;
 	
 	public Window() {
-//		try {
-//			exampleRoot = Paths.get(getClass().getClassLoader().getResource("Examples/").toURI()).toFile();
-//			System.out.println(exampleRoot);
-//		} catch (URISyntaxException e2) {
-//			e2.printStackTrace();
-//		}
 		
 		try {
 	        UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
@@ -159,7 +151,7 @@ public class Window {
 		};
 		p.setInput(input);
 		p.includeLibrary(new Library("Custom DevScript Editor Commands") {
-			public void scriptImport(Process process) { }
+			public void scriptImport(Process process) {}
 			public void scriptExit(Process process, int exitCode, String errorMessage) {}
 			@Override
 			public Command[] createLib() {
@@ -192,42 +184,6 @@ public class Window {
 					console.setCaretColor(Color.black);
 				}
 				return false;
-//				if(window.isEnabled() && e.isControlDown() && e.getKeyCode() == KeyEvent.VK_SPACE) {
-//					String commandSnippet = textArea.getText();
-//					for(int i = textArea.getCaretPosition(); i >= 0; i--) {
-//						char current = textArea.getText().charAt(i);
-//						System.out.println("CHecking: '" + current + "'");
-//						if(current == ' ' || current == '\n' || current == '\t' || current == '\r' || Alphabet.partOf(current) || i == 0) {
-//							System.out.println((i+1) + " " + textArea.getCaretPosition());
-//							commandSnippet = textArea.getText().substring(i == 0 ? i : i+1, textArea.getCaretPosition()).trim();
-//							System.out.println("Snippet: " + commandSnippet);
-//							break;
-//						}
-//					}
-//					if(!commandSnippet.isEmpty()) {
-//						commandPreview.setVisible(true);
-//						commandPreview.setLocation(textArea.getCaret().getMagicCaretPosition().x + 5, textArea.getCaret().getMagicCaretPosition().y + 25);
-//						
-//						StringBuilder html = new StringBuilder("<html><body>");
-//						for(GeneratedLibrary lib : p.getLibraries()) {
-//							for(Command c : lib.commands) {
-//								if(c.name.length() >= commandSnippet.length()) {
-//									if(c.name.substring(0, commandSnippet.length()).equals(commandSnippet)) {
-//										String args = "";
-//										for(DataType s : c.arguments) {
-//											args += "[" + s.type + "] ";
-//										}
-//										html.append(c.name + " " + args + "<br>");
-//									}
-//								}
-//							}
-//						}
-//						html.append("</body></html>");
-//						System.out.println(html);
-//						commandPreview.setText(html.toString());
-//					}
-//				}
-//				return false;
 			}
 		});
 		

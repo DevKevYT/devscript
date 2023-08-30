@@ -123,7 +123,7 @@ public class NativeLibrary extends Library {
 									}
 									if(variableValue == null) {
 										Array array = new Array();
-										for(int k = 0; k < value; k++) array.push(null);
+										for(int k = 0; k < value; k++) array.push(Process.UNDEFINED);
 										dotScope.setVariable(realVarName.toString(), array, false, false, true);
 										variableValue = dotScope.getVariable(realVarName.toString());
 									} else if(!(variableValue instanceof Array)) {
@@ -132,7 +132,7 @@ public class NativeLibrary extends Library {
 									}
 									if(value >= ((Array) variableValue).getIndexes().size()) {
 										for(int k = ((Array) variableValue).getIndexes().size(); k < value+1; k++) 
-											((Array) variableValue).push(null);
+											((Array) variableValue).push(Process.UNDEFINED);
 									}
 									lastIndexPointer = value;
 									lastArrayPointer = ((Array) variableValue);
@@ -268,7 +268,7 @@ public class NativeLibrary extends Library {
 				new Command("-", "string string", "Subtracts two numbers", 1) {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						if(!ProcessUtils.testForFloat(args[0].toString()) || !ProcessUtils.testForFloat(args[1].toString())) {
-							application.kill(block, "Can only subtract numbers!");
+							application.kill(block, "Can only subtract numbers! (" + args[0].toString() + " - " + args[1].toString() + ")");
 							return null;
 						}
 						
@@ -276,7 +276,7 @@ public class NativeLibrary extends Library {
 							if(args[0].toString().length() <= 19 && args[1].toString().length() <= 19) {
 								return String.valueOf(Long.valueOf(args[0].toString()) - Long.valueOf(args[1].toString()));
 							} else {
-								application.kill(block, "Can only subtract numbers!");
+								application.kill(block, "Can only subtract numbers! (" + args[0].toString() + " - " + args[1].toString() + ")");
 								return null;
 							}
 						} else { //Only valid float values remain
@@ -290,14 +290,14 @@ public class NativeLibrary extends Library {
 				new Command("*", "string string", "Multiplies two numbers", 1) {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						if(!ProcessUtils.testForFloat(args[0].toString()) || !ProcessUtils.testForFloat(args[1].toString())) {
-							application.kill(block, "Can only multiply numbers!");
+							application.kill(block, "Can only multiply numbers! (" + args[0].toString() + " * " + args[1].toString() + ")");
 							return null;
 						}
 						if(ProcessUtils.testForWholeNumber(args[0].toString()) && ProcessUtils.testForWholeNumber(args[1].toString())) {
 							if(args[0].toString().length() <= 19 && args[1].toString().length() <= 19) {
 								return String.valueOf(Long.valueOf(args[0].toString()) * Long.valueOf(args[1].toString()));
 							} else {
-								application.kill(block, "Can only multiply numbers!");
+								application.kill(block, "Can only multiply numbers! (" + args[0].toString() + " * " + args[1].toString() + ")");
 								return null;
 							}
 						} else { //Only valid float values remain
@@ -311,11 +311,15 @@ public class NativeLibrary extends Library {
 				new Command("/", "string string", "Divides two numbers", 1) {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						if(!ProcessUtils.testForFloat(args[0].toString()) || !ProcessUtils.testForFloat(args[1].toString())) {
-							application.kill(block, "Can only divide numbers!");
+							application.kill(block, "Can only divide numbers! (" + args[0].toString() + " / " + args[1].toString() + ")");
 							return null;
 						}
 						float f1 = Float.valueOf(args[0].toString());
 						float f2 = Float.valueOf(args[1].toString());
+						if(f2 == 0) {
+							application.kill(block, "Division by zero (" + f1 + " / " + f2 + ")");
+							return null;
+						}
 						return String.format(java.util.Locale.US, "%f", (f1 / f2));
 					}
 				},
@@ -449,7 +453,34 @@ public class NativeLibrary extends Library {
 					}
 				},
 				
-				new Command("push", "??? @?", "Pushes a new value into the array") {
+				new Command("push", "??? @? string", "Pushes a new value into the array at a specified index. push [value] [array] [index]") {
+					@Override
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						Array arr = (Array) args[1];
+						
+						if(ProcessUtils.testForWholeNumber(args[2].toString())) {
+							
+							int value = Integer.valueOf(args[2].toString());
+							
+							if(value >= arr.getIndexes().size()) {
+								for(int k = arr.getIndexes().size(); k < value; k++) {
+									arr.push(Process.UNDEFINED);
+								}
+							}
+							arr.push(args[0], value);
+							
+						} else application.kill(block, "Argument 2 needs to be an integer instead of " + args[2].toString());
+						
+						//May be legacy code, but this dosen't make any sense wtf
+//						if(!ProcessUtils.typeMatch(typeArg1, new DataType(typeArg0.type, true)) && typeArg1.type != Type.NULL) {
+//							application.kill(block, "Unable to push value type " + typeArg0.type + " into array with type " + typeArg1.type);
+//							return null;
+//						} else arr.push(args[0]);
+						return null;
+					}
+				},
+				
+				new Command("push", "??? @?", "Pushes a new value into the array. push [value] [array]") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						Array arr = (Array) args[1];
 						DataType typeArg1 = ProcessUtils.toDataType(args[1]);
@@ -532,6 +563,14 @@ public class NativeLibrary extends Library {
 							return args[0] == null; //Same thing here
 						}
 						//Nothing can be null from here
+						
+						//Check if the values are numbers, otherwise 0.000 = 0 would return false
+						if(ProcessUtils.testForFloat(args[0].toString()) && ProcessUtils.testForFloat(args[1].toString())) {
+							float f1 = Float.valueOf(args[0].toString());
+							float f2 = Float.valueOf(args[1].toString());
+							return (f1 == f2);
+						}
+						
 						return args[0].toString().equals(args[1].toString());
 					}
 				},
@@ -844,10 +883,9 @@ public class NativeLibrary extends Library {
 						else if(checkType.type == Type.NUMBER) return ProcessUtils.testForWholeNumber(args[0].toString()) || ProcessUtils.testForFloat(args[0].toString());
 						else return ProcessUtils.typeMatch(ProcessUtils.toDataType(args[0]), checkType);
 					}
-					
 				},
 				
-				new Command("wait", "string", "") {
+				new Command("wait", "string", "Pauses the script for x milliseconds") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						if(!ProcessUtils.testForWholeNumber(args[0].toString())) application.kill(block, "Argument 1 needs to be an integer at command: wait <milliseconds>");
 						Thread.sleep(Integer.valueOf(args[0].toString()));

@@ -26,6 +26,15 @@ Here we change the value of the variable "foo" to "Changed the text!"#
 	foo = "Changed the text!";
 	println $foo;
 
+#You can check for the type of a variable with the "[variable] typeof [type]" command#
+	arr = ["string1" "string2"];
+	chaoticArray = [{} (new-object {})];
+	x = 10.5;
+	
+	println ($x typeof "int"); 		#-> false#
+	println ($x typeof "float");	#-> true#
+	println ($arr typeof "array");
+	
 
 #This rule of variable modification also applies to arrays (Tutorial 4) and Objects (Tutorial 7):#
 #We print the first array element ("1") but we will change it to "10"#

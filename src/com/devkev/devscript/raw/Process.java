@@ -20,9 +20,9 @@ public class Process {
 	private ArrayList<Output> output = new ArrayList<Output>(1); 
 	private ApplicationListener listener;
 	
-	static final boolean FALSE = false;
-	static final boolean TRUE = true;
-	static final Undefined UNDEFINED = new Undefined();
+	public static final boolean FALSE = false;
+	public static final boolean TRUE = true;
+	public static final Undefined UNDEFINED = new Undefined();
 	
 	private BufferedReader inputReader;
 	private InputStream inputStream;
@@ -34,7 +34,7 @@ public class Process {
 	
 	public long maxRuntime = 0; //Runtime in ms. If < 0, allowed runtime is infinite
 	private long currentChar = 0;
-	public final String version = "1.9.11"; 
+	public final String version = "1.9.12"; 
 	
 	private boolean caseSensitive = false;
 	
@@ -370,7 +370,7 @@ public class Process {
 			} else if(current == Alphabet.BRK_0) {
 				String subCommand = findMatching(command.toString(), i, 0, Alphabet.BRK_0, Alphabet.BRK_1, Alphabet.ESCAPE, true);
 				if (subCommand == null) {
-					kill(block, "Wtf you doing?!");
+					kill(block, "Missing a closing bracket");
 					return null;
 				}
 				Object returned = executeCommand(new StringBuilder(subCommand), 0, false, block);

@@ -6,7 +6,17 @@ NOTICE:
 	Added in 1.8.0 with the command: import "path_to_jar";
 
 1.9.12 (Work in Progress):
-	TODO: Devscript can't handle null Variables :(
+	- DevScript can now property handle the null variable $null. (="undefined")
+	- Added an explanation for the "wait" command
+	- Added an overloaded command "push [value] [array] [index]" to insert values at a specified index into an array
+	- Added some tips (On how to create "classes", for example) and improved the tutorials
+	- The variable PI should now be recognized as an actual number
+	- More examples
+	- Fixed a profanity in an error message
+	- Division by zero now throws a readable error message (It previously resultet in "Infinity" which was not recognized as a number before, causing confusing errors
+	- Added an ascii raycast example to show off the script capabilities (Take a look! Examples -> demos -> raycast)
+	- Fixed an issue where 0.000 == 0 would return false
+	- More minor fixes
 
 1.9.11:
 	- Fixed try command issue with loops
@@ -31,9 +41,9 @@ NOTICE:
 	  	} else {
 	  	
 	  	}
-	  Also elseif is now possible which wasnt even a thing before 1.9.10. The new if- command is compatible with the old version!
+	  Also elseif is now possible which wasn't even a thing before 1.9.10. The new if- command is compatible with the old version!
 	  More info: file > Examples > tutorials > Variables and conditionals
-	- You can use "?" as array index to let Devscript choose a random entry for you:
+	- You can use "?" as array index to let DevScript choose a random entry for you:
 		colors = [black blue gray white];
 		print $colors[?];
 	- You can now use \n and \t inside Strings
@@ -43,8 +53,8 @@ NOTICE:
 	- Provided more examples and better tutorials
 	- Fixed an error where the "applicationListener" listener was not fired properly when a script was finished.
 	- MASSIVELY improved the performance. Prepare for LIGHTNING SPEED AND EFFICIENCY!
-	- Removed the "dict" datatype
-	- You can now access dictionary (aka. "objects") properties with the standart "." notation.
+	- Removed the "dict" data type
+	- You can now access dictionary (aka. "objects") properties with the standard "." notation.
 	  Instead of this (Even worse with nested objects):
 	  	dict = (createdict);
 	  	set $dict variable "some-variable";
@@ -69,9 +79,9 @@ NOTICE:
 	
 1.9.5:
 	- Added optional "setup(Process process)" function to libraries. Fired once, when the library is imported. When a process is running. Useful to set up listeners etc.
-	- Added "executeEventFunction()" to libraries. Use this function to fire funtions in a running process.
-	- Fixed bug where the Process would throw an error if you tried to import custom libraries with the "import" command
-	- Custom Libraries can now only have one Process attacted which is now accessible in CustomLibrary not only through commands anymore.
+	- Added "executeEventFunction()" to libraries. Use this function to fire functions in a running process.
+	- Fixed a bug where the Process would throw an error if you tried to import custom libraries with the "import" command
+	- Custom Libraries can now only have one Process attached which is now accessible in CustomLibrary not only through commands anymore.
 
 1.9.4:
 	Added linux and mac Support for the "exec" Command.
@@ -88,6 +98,7 @@ NOTICE:
 	The script will now print "Program finished" once it -well- finishes.
 	This function needs to be placed in the main function.
 	Useful if you want to work with sockets.
+	
 1.9.0:
 	- This big Update gives you an Editor GUI! It runs, if you run the program without arguments. However, if you specify arguments inside the
 	command line this will happen: -e or --execute: Loads this script into the editor. -f or --file Loads the file into the editor.
@@ -158,7 +169,7 @@ NOTICE:
 	Added various commands to cast values into java.lang.String, java.lang.Float and java.lang.Integer
 
 1.7.0 (stable raw)
-	Improved performance and less data usage by passing raw data instead of creating DataContainers first, which where f*cking unnessesary.
+	Improved performance and less data usage by passing raw data instead of creating DataContainers first, which where really unnessesary.
 	Removed commands: "->"
 	Also removed the abillity to pass by reference :8
 	
