@@ -5,7 +5,7 @@ NOTICE:
 	Another future plan: Command: "include <abs|rel> <pathToFile>" a command to include external compiled libraries "plug in style".
 	Added in 1.8.0 with the command: import "path_to_jar";
 
-1.9.12 (Work in Progress):
+1.9.12:
 	- DevScript can now property handle the null variable $null. (="undefined")
 	- Added an explanation for the "wait" command
 	- Added an overloaded command "push [value] [array] [index]" to insert values at a specified index into an array
