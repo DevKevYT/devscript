@@ -15,7 +15,10 @@ NOTICE:
 	- Fixed a profanity in an error message
 	- Division by zero now throws a readable error message (It previously resultet in "Infinity" which was not recognized as a number before, causing confusing errors
 	- Added an ascii raycast example to show off the script capabilities (Take a look! Examples -> demos -> raycast)
+	- Added a snake game as example
 	- Fixed an issue where 0.000 == 0 would return false
+	- Added a "keyPressed" event function to the devscript editor library so you can create simple games.
+	- Improved performance
 	- More minor fixes
 
 1.9.11:

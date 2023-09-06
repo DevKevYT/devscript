@@ -1,0 +1,160 @@
+# Snake example #
+# This example uses the inbuild variable "keyCode", which detects a key input. #
+# IMPORTANT!!!! This variable only works in the GUI editor not, if executed in the console! #
+
+
+grid = [];
+size = 18;
+
+foodX = 4;
+foodY = 4;
+foodSymbol = ",";
+
+snake = [];
+direction = 0; # 0 up, 1 down, 2 left, 3 right #
+
+score = 0;
+gameOver = $false;
+
+# make a 10 by 10 grid #
+for i $size {
+	rows = [];
+	for j $size {
+		push " " $rows;
+	};
+	push $rows $grid;
+};
+
+# Expects an x and y #
+addSnakeElement = {
+	push (new-object {
+		x = $0;
+		y = $1;
+		prevX = 0;
+		prevY = 0;
+	}) $snake;
+};
+
+updateSnake = {
+	oldX = $snake[0].x;
+	oldY = $snake[0].y;
+
+	for i (length $snake) {
+
+		snake[$i].prevX = $snake[$i].x;
+		snake[$i].prevY = $snake[$i].y;
+
+		if ($i == 0) { #only the head is allowed to change direction #
+			if ($direction == 0) {
+				snake[$i].y = ($snake[$i].y - 1);	
+			} elseif ($direction == 1) {
+				snake[$i].y = ($snake[$i].y + 1);
+			} elseif ($direction == 2) {
+				snake[$i].x = ($snake[$i].x - 1);
+			} elseif ($direction == 3) {
+				snake[$i].x = ($snake[$i].x + 1);
+			};
+		} else {
+			prevI = ($i - 1);
+			snake[$i].x = $snake[$prevI].prevX;
+			snake[$i].y = $snake[$prevI].prevY;
+		};
+	
+		x = $snake[$i].x;
+		y = $snake[$i].y;
+		
+		if (($x lt 0) or ($x gteq $size) or ($y lt 0) or ($y gteq $size))) {
+			gameOver = $true;
+			return;	
+		};
+		println $grid[$x][$y];
+		if ($grid[$x][$y] == "O") {
+			gameOver = $true;
+			return;
+		};
+
+		grid[$x][$y] = "O";
+
+		if (($x == $foodX) and ($y == $foodY)) {
+			score = ($score + 100);
+			call $spawnFood;
+			call $addSnakeElement $oldX $oldY;
+		};
+	};
+};
+
+
+spawnFood = {
+	foodX = (int ((random) * $size));
+	foodY = (int ((random) * $size));
+	grid[$foodX][$foodY] = $foodSymbol;
+};
+
+drawGrid = {
+	
+	try {
+		exec "cls";
+		clearConsole;
+	};
+	
+	
+	if $gameOver {
+		println "GAME OVER!\nPress any key to start a new game!";
+	};
+
+	println "Score " $score "\nUse wasd to change the snake direction";
+	
+	for i $size {
+		print "-";
+	};
+	println;
+	for i $size {
+		print "|";
+		for j $size {
+			print $grid[$i][$j];
+			if ($grid[$i][$j] != $foodSymbol) { 
+				grid[$i][$j] = " ";
+			};
+		};
+		print "|";
+		println;
+	};
+	for i $size {
+		print "-";
+	};
+	println;
+
+};
+
+call $addSnakeElement 5 5;
+call $spawnFood;
+
+thread key-detect {
+	loop {
+		if($gameOver and ($keyCode != "")) {
+			gameOver = $false;
+			snake = [];
+			call $addSnakeElement 5 5;
+			call $spawnFood;
+			score = 0;
+		};
+
+		if ($keyCode == w) {
+			direction = 2;
+		} elseif ($keyCode == s) {
+			direction = 3;
+		} elseif ($keyCode == a) {
+			direction = 0;
+		} elseif ($keyCode == d) {
+			direction = 1;
+		};
+	};
+};
+
+loop {
+	if (not $gameOver) {
+		wait 80;
+		call $updateSnake;
+		call $drawGrid;
+	}
+};

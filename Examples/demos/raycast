@@ -6,7 +6,7 @@
 # The view will rotate automatically, but you could enable controls if you want. You can also add more walls using the variables bofore the MAIN loop #
 # If manual control is enabled, you can move and look around using the W A S D keys #
 
-MANUAL_CONTROL = $false;
+MANUAL_CONTROL = $true;
 
 
 sizeX = 100;

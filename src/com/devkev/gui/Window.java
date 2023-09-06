@@ -175,9 +175,10 @@ public class Window {
 		});
 		
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyEventDispatcher() {
+			
+			
 			@Override
 			public boolean dispatchKeyEvent(KeyEvent e) {
-				
 				if(e.getKeyCode() == KeyEvent.VK_ENTER && input.inputRequested() && waitForEnter && e.getID() == KeyEvent.KEY_RELEASED) {
 					input.flush(console.getText().substring(inputStart, console.getCaretPosition()) + "\n");
 					waitForEnter = false;
@@ -238,12 +239,15 @@ public class Window {
 		
 		
 		//Examples and tutorials //
-		
-		JMenu examples = new JMenu("Examples");
-		walkDemoPath("/Examples", examples);
-
-		m.add(examples);
-		bar.add(m);
+		try {
+			JMenu examples = new JMenu("Examples");
+			walkDemoPath("/Examples", examples);
+	
+			m.add(examples);
+			bar.add(m);
+		} catch(NullPointerException e) {
+			e.printStackTrace();
+		}
 		
 		JMenu m2 = new JMenu("Edit");
 		JMenuItem undo = new JMenuItem(getFormattedBarText("Undo"));
@@ -303,6 +307,7 @@ public class Window {
 				window.setEnabled(false);
 				p.setCaseSensitive(false);
 				p.execute(textArea.getText(), true);
+				p.setVariable("keyCode", "", false, true);
 			}
 		});
 		m3.add(run);
@@ -379,6 +384,7 @@ public class Window {
 		initRunWindow();
 		window.pack();
 		window.setSize(500, 500);
+		
 	}
 	
 	private boolean isPath(String path) {
@@ -590,6 +596,28 @@ public class Window {
 		
 		runWindow.pack();
 		runWindow.setBounds((int) (Toolkit.getDefaultToolkit().getScreenSize().width *.5f-250), (int) (Toolkit.getDefaultToolkit().getScreenSize().height *.5f-100), 500, 200);
+	
+		runWindow.addKeyListener(new KeyListener() {
+			
+			@Override
+			public void keyTyped(KeyEvent e) {
+			}
+			
+			@Override
+			public void keyReleased(KeyEvent e) {
+				if(p.isRunning()) {
+					p.setVariable("keyCode", "", false, false);
+				}
+			}
+			
+			@Override
+			public void keyPressed(KeyEvent e) {
+				if(p.isRunning()) {
+					//Set the variable "keyPressed" to the char that is pressed
+					p.setVariable("keyCode", e.getKeyChar(), false, false);
+				}
+			}
+		});
 	}
 	
 	private String getFormattedBarText(String text) {

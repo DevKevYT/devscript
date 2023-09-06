@@ -29,7 +29,7 @@ public class Process {
 	
 	Block main;
 	//Main block is not never in the list, since the process gets terminated, if main is killed.
-	private final ArrayList<Block> aliveBlocks = new ArrayList<Block>(1); 
+	//private final ArrayList<Block> aliveBlocks = new ArrayList<Block>(1); 
 	boolean breakRequested = false;
 	
 	public long maxRuntime = 0; //Runtime in ms. If < 0, allowed runtime is infinite
@@ -157,8 +157,7 @@ public class Process {
 	
 	private void start(Block block) {
 		if(block == null) return;
-		
-		aliveBlocks.add(block);
+		//aliveBlocks.add(block);
 		StringBuilder command = block.blockCode;
 		
 		block.exitCode = ExitCodes.DONE;
@@ -181,7 +180,7 @@ public class Process {
 		}
 		
 		block.alive = false;
-		aliveBlocks.remove(block);
+		//aliveBlocks.remove(block);
 	}
 	
 	/**@return false, if the block: <br>
@@ -666,18 +665,18 @@ public class Process {
 			
 			finalizeExit(1, errorMessage);
 			
-			for(int i = 0; i < aliveBlocks.size(); i++) {
+			/*for(int i = 0; i < aliveBlocks.size(); i++) {
 				aliveBlocks.get(i).cached.clear();
 				aliveBlocks.get(i).alive = false;
 				aliveBlocks.get(i).interrupted = true;
-			}
+			}*/
 			block.alive = false;
 			block.interrupted = true;
 			block.currentCommand = "";
 		}
 		
 		block.exitCode = ExitCodes.ERROR;
-		aliveBlocks.clear();
+		//aliveBlocks.clear();
 		garbageCollection(main);
 	}
 	
