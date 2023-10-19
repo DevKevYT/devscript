@@ -1040,17 +1040,27 @@ public class NativeLibrary extends Library {
 					}
 				},
 				
-				new Command("import", "string", "Imports a library from a compiled .jar file. The class should extend com.mygdx.devkev.devscript.raw.Library and be named CustomLibrary\n"
-						+ "You can use a * to reference the current path the process is executed in (*/library.jar") {
+				new Command("import", "string", "Imports a library from a compiled .jar file. The class should extend com.mygdx.devkev.devscript.raw.Library. If the path starts with * it looks in the current folder of the script file") {
 					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						
 						if(!args[0].toString().endsWith(".jar")) args[0] += ".jar"; 
+						
 						File fileToImport;
-						if(!args[0].toString().startsWith("*")) fileToImport = new File(args[0].toString());
-						else {
-							File jarFile = new File(URLDecoder.decode(ConsoleMain.class.getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8"));
-							fileToImport = new File(jarFile.getParent() + args[0].toString().substring(1));
+						
+						if(!args[0].toString().startsWith("*")) {
+							fileToImport = new File(args[0].toString());
+						
+						} else {
+							if(application.file == null) {
+								File jarFile = new File(URLDecoder.decode(ConsoleMain.class.getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8"));
+								fileToImport = new File(jarFile.getParent() + args[0].toString().substring(1));
+							} else {
+								fileToImport = new File(application.file.getParentFile().getAbsolutePath() + "\\" + args[0].toString().substring(1));
+							}
 						}
+						
+						System.out.println("Trying to import from: " + fileToImport);
 						
 						if(!fileToImport.exists()) {
 							application.kill(block, "File to import not found: " + fileToImport.getPath());
@@ -1061,10 +1071,11 @@ public class NativeLibrary extends Library {
 						java.net.URL url = uri.toURL();
 							
 						Library lib;
+						
 						try {
 							@SuppressWarnings("resource")
 							ClassLoader loader = new java.net.URLClassLoader(new java.net.URL[] {url});
-							Class<?> pluginClass = loader.loadClass("Library");
+							Class<?> pluginClass = loader.loadClass("com.devkev.devscript.raw.Library");
 							
 							lib = (Library) pluginClass.getConstructor().newInstance();
 							lib.bound = application;

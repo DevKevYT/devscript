@@ -5,6 +5,14 @@ NOTICE:
 	Another future plan: Command: "include <abs|rel> <pathToFile>" a command to include external compiled libraries "plug in style".
 	Added in 1.8.0 with the command: import "path_to_jar";
 
+1.9.13:
+	- The "import" command got very few love the last updates:
+		- The class of the imported .jar file only has to extend the "Library" class and does not need to be named "CustomLibrary"
+		  BUT that means I have to use a third party library :(
+		- Relative paths (*/lib.jar for example) can either be: 
+			The folder of a script file that is being executed 
+			OR the folder of the script host, if no file is being loaded
+
 1.9.12:
 	- DevScript can now property handle the null variable $null. (="undefined")
 	- Added an explanation for the "wait" command

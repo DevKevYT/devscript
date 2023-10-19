@@ -305,6 +305,7 @@ public class Window {
 				runWindow.setTitle("Running...");
 				runWindow.setVisible(true);	
 				window.setEnabled(false);
+				p.file = openedFile;
 				p.setCaseSensitive(false);
 				p.execute(textArea.getText(), true);
 				p.setVariable("keyCode", "", false, true);
@@ -595,7 +596,7 @@ public class Window {
 		runWindow.add(consolePane);
 		
 		runWindow.pack();
-		runWindow.setBounds((int) (Toolkit.getDefaultToolkit().getScreenSize().width *.5f-250), (int) (Toolkit.getDefaultToolkit().getScreenSize().height *.5f-100), 500, 200);
+		runWindow.setBounds((int) (Toolkit.getDefaultToolkit().getScreenSize().width * .5f - 250), (int) (Toolkit.getDefaultToolkit().getScreenSize().height *.5f-100), 500, 200);
 	
 		runWindow.addKeyListener(new KeyListener() {
 			
