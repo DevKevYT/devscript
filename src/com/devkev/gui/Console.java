@@ -16,6 +16,9 @@ import java.awt.event.WindowListener;
 import java.awt.event.ActionEvent;
 import javax.swing.JTextArea;
 import javax.swing.ImageIcon;
+import javax.swing.border.LineBorder;
+import java.awt.Color;
+import javax.swing.JLabel;
 
 public class Console extends JFrame {
 
@@ -24,10 +27,15 @@ public class Console extends JFrame {
 	private com.devkev.devscript.raw.Process p;
 	private Window parent;
 	
+	JTextArea consoleText;
+	JScrollPane consolePane;
+	JLabel consoleStatus;
+	
 	volatile boolean waitForEnter = false;
 	volatile int inputStart = 0;
 	
 	public Console(com.devkev.devscript.raw.Process p, Window parent) {
+		setTitle("DevScript Console");
 		this.p = p;
 		this.parent = parent;
 		init();
@@ -35,35 +43,70 @@ public class Console extends JFrame {
 	
 	private void init() {
 		setFont(new Font("Consolas", Font.PLAIN, 12));
-		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		setBounds(100, 100, 500, 239);
+		setFocusableWindowState(true);
+		setEnabled(true);
 		
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-
+		
 		setContentPane(contentPane);
 		contentPane.setLayout(null);
 		
 		JButton terminate = new JButton("");
-		terminate.setIcon(new ImageIcon("C:\\Users\\Philipp\\Desktop\\terminate-active.png"));
+		terminate.setToolTipText("Terminate");
+		terminate.setBorder(new LineBorder(new Color(0, 0, 0)));
+		terminate.setIcon(new ImageIcon(Console.class.getResource("/icon/terminate-active.png")));
 		terminate.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 			}
 		});
-		terminate.setBounds(451, 166, 23, 23);
+		terminate.setBounds(456, 5, 23, 23);
+		terminate.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(parent.p.isRunning()) {
+					parent.p.kill(parent.p.getMain(), "Terminated by DevScript Console");
+					consolePane.getVerticalScrollBar().setValue(consolePane.getVerticalScrollBar().getMaximum());
+				}
+			}
+		});
+		
 		contentPane.add(terminate);
 		
 		JButton rerun = new JButton("");
-		rerun.setIcon(new ImageIcon("C:\\Users\\Philipp\\Desktop\\rerun-active.png"));
-		rerun.setBounds(418, 166, 23, 23);
+		rerun.setToolTipText("Rerun Script");
+		rerun.setBorder(new LineBorder(new Color(0, 0, 0)));
+		rerun.setIcon(new ImageIcon(Console.class.getResource("/icon/rerun-active.png")));
+		rerun.setBounds(429, 5, 23, 23);
+		rerun.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(p.isRunning()) return;
+				
+				consoleText.setText("");
+				toFront();
+				setEnabled(true);
+				consoleStatus.setText("Running ...");
+				setVisible(true);	
+				//window.setEnabled(false);
+				
+				p.execute(parent.textArea.getText(), true);
+				p.setVariable("keyCode", "", false, true);
+			}
+		});
 		contentPane.add(rerun);
 		
-		JScrollPane scrollPane = new JScrollPane();
-		scrollPane.setBounds(10, 11, 464, 144);
-		contentPane.add(scrollPane);
+		consolePane = new JScrollPane();
+		consolePane.setBounds(5, 35, 474, 159);
+		contentPane.add(consolePane);
 		
-		JTextArea console = new JTextArea();
-		scrollPane.setViewportView(console);
+		consoleText = new JTextArea();
+		consolePane.setViewportView(consoleText);
+		
+		consoleStatus = new JLabel("");
+		consoleStatus.setBounds(5, 5, 414, 23);
+		contentPane.add(consoleStatus);
 		
 		addKeyListener(new KeyListener() {
 			
@@ -101,7 +144,7 @@ public class Console extends JFrame {
 				parent.window.setEnabled(true);
 				inputStart = 0;
 				parent.input.flush(null);
-				console.setText("");
+				consoleText.setText("");
 			}
 			public void windowActivated(WindowEvent arg0) {}
 		});
@@ -109,8 +152,10 @@ public class Console extends JFrame {
 		addComponentListener(new ComponentListener() {
 			@Override
 			public void componentResized(ComponentEvent e) {
-				console.setSize(parent.window.getRootPane().getWidth() - 10, parent.window.getRootPane().getHeight()-parent.bar.getHeight() - 10);
-				console.updateUI();
+				consolePane.setSize(getRootPane().getWidth() - 10, getRootPane().getHeight()-parent.bar.getHeight() - 20);
+				terminate.setLocation(getRootPane().getWidth() - 28, 5);
+				rerun.setLocation(getRootPane().getWidth() - 58, 5);
+				consolePane.updateUI();
 			}
 			public void componentShown(ComponentEvent e) {}
 			public void componentMoved(ComponentEvent e) {}

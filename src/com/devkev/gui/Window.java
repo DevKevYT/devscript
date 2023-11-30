@@ -50,13 +50,10 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
-import javax.swing.event.CaretEvent;
-import javax.swing.event.CaretListener;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
@@ -97,6 +94,8 @@ public class Window {
 	File exampleRoot;
 	FileSystem fileSystem;
 	
+	Console console;
+	
 	public Window() {
 		
 		try {
@@ -122,21 +121,24 @@ public class Window {
 		});
 		window.setMinimumSize(new Dimension(180, 180));
 		
+		
 		p = new Process(true);
+		console = new Console(p, this);
+		
 		TITLE = "Devscript " + p.version + " Editor ";
 		window.setTitle(TITLE);
 		p.addOutput(new Output() {
 			public void warning(String message) {
-				console.append("[WARN] " + message + "\n");
-				consolePane.getVerticalScrollBar().setValue(consolePane.getVerticalScrollBar().getMaximum());
+				console.consoleText.append("[WARN] " + message + "\n");
+				console.consolePane.getVerticalScrollBar().setValue(console.consolePane.getVerticalScrollBar().getMaximum());
 			}
 			public void log(String message, boolean newline) {
-				console.append(message + (newline ? "\n" : ""));
-				consolePane.getVerticalScrollBar().setValue(consolePane.getVerticalScrollBar().getMaximum());
+				console.consoleText.append(message + (newline ? "\n" : ""));
+				console.consolePane.getVerticalScrollBar().setValue(console.consolePane.getVerticalScrollBar().getMaximum());
 			}
 			public void error(String message) {
-				console.append(message + "\n");
-				consolePane.getVerticalScrollBar().setValue(consolePane.getVerticalScrollBar().getMaximum());
+				console.consoleText.append(message + "\n");
+				console.consolePane.getVerticalScrollBar().setValue(console.consolePane.getVerticalScrollBar().getMaximum());
 			}
 		});
 		input = new ApplicationInput() {
@@ -144,9 +146,9 @@ public class Window {
 			public void awaitInput() {
 				waitForEnter = true;
 				console.setEnabled(true);
-				inputStart = console.getText().length();
-				console.setCaretPosition(inputStart);
-				console.setCaretColor(Color.black);
+				inputStart = console.consoleText.getText().length();
+				console.consoleText.setCaretPosition(inputStart);
+				console.consoleText.setCaretColor(Color.black);
 			}
 		};
 		p.setInput(input);
@@ -159,7 +161,7 @@ public class Window {
 					new Command("clearConsole", "", "Clears the console") {
 						@Override
 						public Object execute(Object[] args, Process application, Block block) throws Exception {
-							console.setText("");
+							console.consoleText.setText("");
 							return null;
 						}
 					},
@@ -168,9 +170,9 @@ public class Window {
 		});
 		p.setApplicationListener(new ApplicationListener() {
 			public void done(int exitCode) {
-				runWindow.setTitle("Finished with Exit Code " + exitCode);
-				window.setEnabled(true);
-				console.setEnabled(false);
+				console.consoleStatus.setText("Finished with Exit Code " + exitCode);
+				//window.setEnabled(true);
+				//console.setEnabled(false);
 			}
 		});
 		
@@ -178,9 +180,9 @@ public class Window {
 			@Override
 			public boolean dispatchKeyEvent(KeyEvent e) {
 				if(e.getKeyCode() == KeyEvent.VK_ENTER && input.inputRequested() && waitForEnter && e.getID() == KeyEvent.KEY_RELEASED) {
-					input.flush(console.getText().substring(inputStart, console.getCaretPosition()) + "\n");
+					input.flush(console.consoleText.getText().substring(inputStart, console.consoleText.getCaretPosition()) + "\n");
 					waitForEnter = false;
-					console.setCaretColor(Color.black);
+					console.consoleText.setCaretColor(Color.black);
 				}
 				return false;
 			}
@@ -243,8 +245,8 @@ public class Window {
 	
 			m.add(examples);
 			bar.add(m);
-		} catch(NullPointerException e) {
-			e.printStackTrace();
+		} catch(Exception e) {
+			System.err.println("Failed to find examples in class path");
 		}
 		
 		JMenu m2 = new JMenu("Edit");
@@ -298,11 +300,14 @@ public class Window {
 		run.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if(p.isRunning()) return;
-				console.setText("");
-				runWindow.toFront();
-				runWindow.setTitle("Running...");
-				runWindow.setVisible(true);	
-				window.setEnabled(false);
+				
+				console.consoleText.setText("");
+				console.toFront();
+				console.setEnabled(true);
+				console.consoleStatus.setText("Running ...");
+				console.setVisible(true);	
+				//window.setEnabled(false);
+				
 				p.file = openedFile;
 				p.setCaseSensitive(false);
 				p.execute(textArea.getText(), true);
@@ -318,9 +323,9 @@ public class Window {
 		commandCC.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if(p.isRunning()) return;
-				console.setText("");
-				runWindow.toFront();
-				runWindow.setVisible(true);
+				console.consoleText.setText("");
+				console.toFront();
+				console.setVisible(true);
 				p.execute("help", false);
 			}});
 		m4.add(commandCC);
@@ -380,7 +385,6 @@ public class Window {
 		layerPane.setLayer(commandPreview, 999);
 		window.add(layerPane);
 		
-		initRunWindow();
 		window.pack();
 		window.setSize(500, 500);
 		
@@ -524,99 +528,6 @@ public class Window {
 	
 	public void initSaveNotification() {
 		saveDialog = new JFrame("Save changes to ");
-	}
-	
-	JFrame runWindow;
-	JTextArea console;
-	JScrollPane consolePane;
-	
-	public void initRunWindow() {
-		runWindow = new JFrame();
-		runWindow.setVisible(false);
-		runWindow.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-		runWindow.addWindowListener(new WindowListener() {
-			public void windowClosed(WindowEvent arg0) {}
-			public void windowOpened(WindowEvent arg0) {}
-			public void windowIconified(WindowEvent arg0) {}
-			public void windowDeiconified(WindowEvent arg0) {}
-			public void windowDeactivated(WindowEvent arg0) {}
-			public void windowClosing(WindowEvent arg0) {
-				if(p.isRunning()) {
-					System.out.println("Closing running instance");
-					p.kill(p.getMain(), "Interrupted by program");
-				}
-				window.setEnabled(true);
-				inputStart = 0;
-				input.flush(null);
-				console.setText("");
-			}
-			public void windowActivated(WindowEvent arg0) {}
-		});
-		runWindow.addComponentListener(new ComponentListener() {
-			@Override
-			public void componentResized(ComponentEvent e) {
-				console.setSize(window.getRootPane().getWidth() - 10, window.getRootPane().getHeight()-bar.getHeight() - 10);
-				console.updateUI();
-			}
-			public void componentShown(ComponentEvent e) {}
-			public void componentMoved(ComponentEvent e) {}
-			public void componentHidden(ComponentEvent e) {}
-		});
-		
-		console = new JTextArea();
-		console.setFont(font);
-		console.addCaretListener(new CaretListener() {
-			@Override
-			public void caretUpdate(CaretEvent e) {
-				if(input.inputRequested() && console.getCaretPosition() < inputStart) {
-					console.setCaretPosition(inputStart);
-				}
-			}
-		});
-		console.addKeyListener(new KeyListener() {
-			@Override
-			public void keyTyped(KeyEvent e) {}
-			public void keyReleased(KeyEvent e) {}
-			public void keyPressed(KeyEvent e) {
-				if(!input.inputRequested()) return;
-				if(console.getCaretPosition() == inputStart && e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
-					e.consume();
-				}
-			}
-		});
-		
-		console.setEnabled(false);
-		console.setDisabledTextColor(Color.DARK_GRAY);
-		consolePane = new JScrollPane(console, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-		consolePane.setBounds(5, 5, runWindow.getRootPane().getWidth()-10,  runWindow.getRootPane().getHeight()-10);
-		consolePane.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-		consolePane.setAutoscrolls(true);
-		runWindow.add(consolePane);
-		
-		runWindow.pack();
-		runWindow.setBounds((int) (Toolkit.getDefaultToolkit().getScreenSize().width * .5f - 250), (int) (Toolkit.getDefaultToolkit().getScreenSize().height *.5f-100), 500, 200);
-	
-		runWindow.addKeyListener(new KeyListener() {
-			
-			@Override
-			public void keyTyped(KeyEvent e) {
-			}
-			
-			@Override
-			public void keyReleased(KeyEvent e) {
-				if(p.isRunning()) {
-					p.setVariable("keyCode", "", false, false);
-				}
-			}
-			
-			@Override
-			public void keyPressed(KeyEvent e) {
-				if(p.isRunning()) {
-					//Set the variable "keyPressed" to the char that is pressed
-					p.setVariable("keyCode", e.getKeyChar(), false, false);
-				}
-			}
-		});
 	}
 	
 	private String getFormattedBarText(String text) {

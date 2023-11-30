@@ -1,10 +1,5 @@
 /// Change log of the DevScript jar file ///
 
-NOTICE:
-	the boolean "useCache" (constructor) is still useless, the command cache will be added in future updates to make the script even faster.
-	Another future plan: Command: "include <abs|rel> <pathToFile>" a command to include external compiled libraries "plug in style".
-	Added in 1.8.0 with the command: import "path_to_jar";
-
 1.9.13:
 	- The "import" command got very few love the last updates:
 		- The class of the imported .jar file only has to extend the "Library" class and does not need to be named "CustomLibrary"
@@ -17,8 +12,9 @@ NOTICE:
 		- gui.clear
 		- gui.setSize [sizeX] [sizeY]
 		- gui.fullscreen [true/false]
-		(The command "clearConsole" is still available but will be removed in future releases by the "window.clear" command)
-
+		(The command "clearConsole" is still available but will be removed in future releases by the "gui.clear" command)
+	- Started to make some plans to implement a simple graphics library to control java awt elements.
+	
 1.9.12:
 	- DevScript can now property handle the null variable $null. (="undefined")
 	- Added an explanation for the "wait" command

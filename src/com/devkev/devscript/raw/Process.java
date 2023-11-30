@@ -650,7 +650,6 @@ public class Process {
 		
 		if(block == null) {
 			error("A java error happened outside of the devscript environment: " + errorMessage);
-			kill(main, "Unknown Java Exception");
 			return;
 		} else {
 			//Check block and parent blocks. Also, maybe create a stacktrace?
