@@ -104,6 +104,16 @@ public abstract class Command {
     	return repeated;
     }
     
+    /**True, if the argument is a integer and not a float*/
+    public boolean isInteger(String argument) {
+    	return ProcessUtils.testForWholeNumber(argument);
+    }
+    
+    /**True, if the argument is a float or integer*/
+    public boolean isFloat(String argument) {
+    	return ProcessUtils.testForFloat(argument);
+    }
+    
     public static String prepare(String arguments) {
     	StringBuilder prepArgs = new StringBuilder();
     	for(int i = 0; i < arguments.length(); i++) {

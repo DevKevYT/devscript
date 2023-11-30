@@ -98,7 +98,7 @@ public class Console extends JFrame {
 		contentPane.add(rerun);
 		
 		consolePane = new JScrollPane();
-		consolePane.setBounds(5, 35, 474, 159);
+		consolePane.setBounds(0, 35, 484, 165);
 		contentPane.add(consolePane);
 		
 		consoleText = new JTextArea();
@@ -152,7 +152,7 @@ public class Console extends JFrame {
 		addComponentListener(new ComponentListener() {
 			@Override
 			public void componentResized(ComponentEvent e) {
-				consolePane.setSize(getRootPane().getWidth() - 10, getRootPane().getHeight()-parent.bar.getHeight() - 20);
+				consolePane.setSize(getRootPane().getWidth(), getRootPane().getHeight()-parent.bar.getHeight() - 10);
 				terminate.setLocation(getRootPane().getWidth() - 28, 5);
 				rerun.setLocation(getRootPane().getWidth() - 58, 5);
 				consolePane.updateUI();

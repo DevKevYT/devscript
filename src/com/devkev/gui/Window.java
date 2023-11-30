@@ -17,8 +17,6 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -158,21 +156,37 @@ public class Window {
 			@Override
 			public Command[] createLib() {
 				return new Command[] {
-					new Command("clearConsole", "", "Clears the console") {
+					new Command("clearConsole", "", "Deprecated since 1.9.13 and removed in future releases. Please use 'gui.clear'") {
 						@Override
 						public Object execute(Object[] args, Process application, Block block) throws Exception {
 							console.consoleText.setText("");
 							return null;
 						}
 					},
+					
+					new Command("gui.clear", "", "Clears the console") {
+						@Override
+						public Object execute(Object[] args, Process application, Block block) throws Exception {
+							console.consoleText.setText("");
+							return null;
+						}
+					},
+					
+					new Command("gui.size", "string string", "Sets the console window size in pixels") {
+						@Override
+						public Object execute(Object[] args, Process application, Block block) throws Exception {
+							if(isInteger(args[0].toString()) && isInteger(args[1].toString())) {
+								console.setSize(Integer.valueOf(args[0].toString()), Integer.valueOf(args[1].toString()));
+							} else application.kill(block, "Argument 1 and 2 need to be positive integers");
+							return null;
+						}
+					}
 				};
 			}
 		});
 		p.setApplicationListener(new ApplicationListener() {
 			public void done(int exitCode) {
 				console.consoleStatus.setText("Finished with Exit Code " + exitCode);
-				//window.setEnabled(true);
-				//console.setEnabled(false);
 			}
 		});
 		
@@ -326,7 +340,7 @@ public class Window {
 				console.consoleText.setText("");
 				console.toFront();
 				console.setVisible(true);
-				p.execute("help", false);
+				p.execute("gui.size 1000 400;help", false);
 			}});
 		m4.add(commandCC);
 		m4.addSeparator();
