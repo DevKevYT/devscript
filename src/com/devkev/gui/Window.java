@@ -175,8 +175,6 @@ public class Window {
 		});
 		
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyEventDispatcher() {
-			
-			
 			@Override
 			public boolean dispatchKeyEvent(KeyEvent e) {
 				if(e.getKeyCode() == KeyEvent.VK_ENTER && input.inputRequested() && waitForEnter && e.getID() == KeyEvent.KEY_RELEASED) {

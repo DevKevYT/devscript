@@ -12,6 +12,12 @@ NOTICE:
 		- Relative paths (*/lib.jar for example) can either be: 
 			The folder of a script file that is being executed 
 			OR the folder of the script host, if no file is being loaded
+	- The editor now looks a little more fancier with some additional options to rerun scripts or terminate a script without closing the window
+	- Added some additional commands to resize the console window or to clean the window
+		- gui.clear
+		- gui.setSize [sizeX] [sizeY]
+		- gui.fullscreen [true/false]
+		(The command "clearConsole" is still available but will be removed in future releases by the "window.clear" command)
 
 1.9.12:
 	- DevScript can now property handle the null variable $null. (="undefined")
