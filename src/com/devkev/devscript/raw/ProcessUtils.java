@@ -3,11 +3,6 @@ package com.devkev.devscript.raw;
 /**This class holds various constants etc for the script.*/
 public final class ProcessUtils {
 	
-	public interface ExitCodes {
-		public byte DONE = 0;
-		public byte ERROR = 1;
-	}
-	
 	public enum Type {
 		//Base data types
 		NULL("null"), 

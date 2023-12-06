@@ -11,10 +11,10 @@
 	- Added some additional commands to resize the console window or to clean the window
 		- gui.clear
 		- gui.setSize [sizeX] [sizeY]
-		- gui.fullscreen [true/false]
+		- gui.fullscreen [$true/$false]
 		(The command "clearConsole" is still available but will be removed in future releases by the "gui.clear" command)
-	- Started to make some plans to implement a simple graphics library to control java awt elements.
-	
+	- Started to make some plans to implement a simple graphics library to control java awt elements ;)
+
 1.9.12:
 	- DevScript can now property handle the null variable $null. (="undefined")
 	- Added an explanation for the "wait" command

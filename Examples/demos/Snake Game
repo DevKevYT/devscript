@@ -94,7 +94,7 @@ drawGrid = {
 	
 	try {
 		exec "cls";
-		clearConsole;
+		gui.clear;
 	};
 	
 	

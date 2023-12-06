@@ -9,7 +9,7 @@ blacklist = [];
 drawScreen = {
 	try {
 		exec cls;
-		clearConsole;
+		gui.clear;
 	};
 	
 	allright = $true;
@@ -40,7 +40,7 @@ drawScreen = {
 drawEndScreen = {
 	try {
 		exec cls;
-		clearConsole;
+		gui.clear;
 	};
 	
 	if $0 {
@@ -96,6 +96,7 @@ addToBlacklist = {
 	push $0 $blacklist;
 };
 
+gui.size 600 200;
 call $chooseWord;
 life = 10;
 loop {

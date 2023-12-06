@@ -8,6 +8,8 @@
 
 MANUAL_CONTROL = $true;
 
+# Toogle fullscreen #
+gui.fullscreen $true;
 
 sizeX = 100;
 sizeY = 30;
@@ -260,7 +262,7 @@ loop {
 	
 	try {
 		exec "cls";
-		clearConsole;
+		gui.clear;
 	};
 	call $drawScreen;
 

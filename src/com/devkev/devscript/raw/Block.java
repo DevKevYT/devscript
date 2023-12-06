@@ -2,7 +2,7 @@ package com.devkev.devscript.raw;
 
 import java.util.ArrayList;
 
-import com.devkev.devscript.raw.ProcessUtils.ExitCodes;
+import com.devkev.devscript.raw.ExecutionState.ExitCodes;
 
 public class Block { //So stupid...
 	

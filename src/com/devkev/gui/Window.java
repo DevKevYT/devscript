@@ -81,7 +81,7 @@ public class Window {
 	
 	private static Font font;
 	private File openedFile = null; //Null means, creating a new file when saving.
-	private static String TITLE = "Devscript 1.9.12 Editor ";
+	private static String TITLE = "Devscript 1.9.13 Editor ";
 	private ArrayList<String> history = new ArrayList<String>();
 	private int historyIndex = 0;
 	public int maxHistorySize = 50;
@@ -145,8 +145,10 @@ public class Window {
 				waitForEnter = true;
 				console.setEnabled(true);
 				inputStart = console.consoleText.getText().length();
+				console.consoleText.setEditable(true);
 				console.consoleText.setCaretPosition(inputStart);
-				console.consoleText.setCaretColor(Color.black);
+				console.consoleText.setCaretColor(Color.green);
+				console.consoleStatus.setText("Waiting for input. Press ENTER");
 			}
 		};
 		p.setInput(input);
@@ -180,6 +182,18 @@ public class Window {
 							} else application.kill(block, "Argument 1 and 2 need to be positive integers");
 							return null;
 						}
+					},
+					
+					new Command("gui.fullscreen", "boolean", "Toggles fullscreen for the console window") {
+						@Override
+						public Object execute(Object[] args, Process application, Block block) throws Exception {
+							if(args[0].toString().equals("true")) {
+								console.setExtendedState(JFrame.MAXIMIZED_BOTH); 
+							} else {
+								console.setExtendedState(JFrame.NORMAL); 
+							}
+							return null;
+						}
 					}
 				};
 			}
@@ -197,6 +211,8 @@ public class Window {
 					input.flush(console.consoleText.getText().substring(inputStart, console.consoleText.getCaretPosition()) + "\n");
 					waitForEnter = false;
 					console.consoleText.setCaretColor(Color.black);
+					console.consoleStatus.setText("Running ...");
+					console.consoleText.setEditable(false);
 				}
 				return false;
 			}

@@ -66,6 +66,12 @@ public class Console extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				if(parent.p.isRunning()) {
+					
+					waitForEnter = false;
+					consoleText.setCaretColor(Color.black);
+					consoleStatus.setText("Running ...");
+					consoleText.setEditable(false);
+					
 					parent.p.kill(parent.p.getMain(), "Terminated by DevScript Console");
 					consolePane.getVerticalScrollBar().setValue(consolePane.getVerticalScrollBar().getMaximum());
 				}
@@ -82,7 +88,8 @@ public class Console extends JFrame {
 		rerun.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if(p.isRunning()) return;
+				if(p.isRunning()) 
+					p.kill(p.getMain(), "Rerunning script");;
 				
 				consoleText.setText("");
 				toFront();
@@ -102,6 +109,8 @@ public class Console extends JFrame {
 		contentPane.add(consolePane);
 		
 		consoleText = new JTextArea();
+		consoleText.setEditable(false);
+		consoleText.setFont(new Font("Monospaced", Font.PLAIN, 11));
 		consolePane.setViewportView(consoleText);
 		
 		consoleStatus = new JLabel("");

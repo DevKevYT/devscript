@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Random;
 
 import com.devkev.devscript.nativecommands.NativeLibrary;
-import com.devkev.devscript.raw.ProcessUtils.ExitCodes;
+import com.devkev.devscript.raw.ExecutionState.ExitCodes;
 
 public class Process {
 
@@ -29,12 +29,11 @@ public class Process {
 	
 	Block main;
 	//Main block is not never in the list, since the process gets terminated, if main is killed.
-	//private final ArrayList<Block> aliveBlocks = new ArrayList<Block>(1); 
 	boolean breakRequested = false;
 	
 	public long maxRuntime = 0; //Runtime in ms. If < 0, allowed runtime is infinite
 	private long currentChar = 0;
-	public final String version = "1.9.12"; 
+	public final String version = "1.9.13"; 
 	
 	private boolean caseSensitive = false;
 	
@@ -545,10 +544,10 @@ public class Process {
 	/**@param garbageCollector - If the process should remove variables after the block was executed.
 	 * Usually true, because the variables would not be accessible anymore anyway.
 	 * @param isConstructor - If the block is used as a constructor. This means, that variables created in this block are:
-	 * not garbegage collected and are isolated from other blocks.*/
+	 * not garbegage collected and are isolated from other blocks.
+	 * @return The execution state wether this block executed successful or with an exception*/
 	public void executeBlock(Block block, boolean garbageCollector, Object... args) {
 		if(block == null) block = getMain();
-		//if(block.alive) kill(block, "Block already running");
 		
 		/*The arguments are just variables declared in the block - local scope and removed afterwards, if requested*/
 		if(block != null) {
@@ -664,18 +663,24 @@ public class Process {
 			
 			finalizeExit(1, errorMessage);
 			
-			/*for(int i = 0; i < aliveBlocks.size(); i++) {
-				aliveBlocks.get(i).cached.clear();
-				aliveBlocks.get(i).alive = false;
-				aliveBlocks.get(i).interrupted = true;
-			}*/
 			block.alive = false;
 			block.interrupted = true;
 			block.currentCommand = "";
 		}
 		
+		try {
+			//Notify the stream, in case an input is still awaited and fire the 
+			synchronized (inputStream) {
+				inputStream.notify();
+			}
+			
+			inputStream.close();
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 		block.exitCode = ExitCodes.ERROR;
-		//aliveBlocks.clear();
 		garbageCollection(main);
 	}
 	
