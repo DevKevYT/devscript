@@ -22,6 +22,7 @@
 	  	println "The exception was: " $ex;
 	  }
 	- Added error handling tutorial/examples for try/catch stuff and more examples
+	- Added a small welcome message for the GUI editor to prevent confusion
 	
 1.9.12:
 	- DevScript can now property handle the null variable $null. (="undefined")
