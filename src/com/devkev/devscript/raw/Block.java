@@ -22,7 +22,7 @@ public class Block { //So stupid...
 	private byte stack = 0;
 	
 	ArrayList<Command> cached = new ArrayList<>(1);
-	int exitCode = ExitCodes.DONE;
+	ExecutionState currentExecutionState = new ExecutionState(ExitCodes.DONE, "Success");
 	
 	//Block flags
 	//This flag gets set to true, if a variable containing a block (= function) is made in the command = (function = {#some code#}) (Flag: F)
@@ -54,17 +54,18 @@ public class Block { //So stupid...
 		} else this.stack = 0;
 	}
 	
-	public boolean inheritTryCatch() {
+	/**Returns the first block that is marked as try/catch or null of none found*/
+	public Block inheritTryCatch() {
 		Block current = this;
 		while(current.parent != null) {
-			if(current.parent == null) return current.isTryCatch;
-			else if(current.parent == host.main) return current.isTryCatch;
+			if(current.parent == null) return current.isTryCatch ? current : null;
+			else if(current.parent == host.main) return current.isTryCatch ? current : null;
 			else {
 				current = current.parent;
-				if(current.isTryCatch()) return true;
+				if(current.isTryCatch()) return current;
 			}
 		}
-		return current.isTryCatch;
+		return current.isTryCatch ? current : null;
 	}
 	
 	public boolean isTryCatch() {
@@ -94,6 +95,8 @@ public class Block { //So stupid...
 	public synchronized void interrupt() {
 		interrupted = true;
 		isLoop = false;
+		currentCommand = "";
+		alive = false;
 	}
 	
 	public synchronized boolean interrupted() {

@@ -1,4 +1,4 @@
-#                 [[ RAYCAST EXAMPLE BY DEVKEV AKA PHILIPP GERSCH 30.08.23 ]]                            #
+#                 [[ RAYCAST EXAMPLE BY DEVKEV AKA PHILIPP GERSCH 06.12.2023 UPDATED FOR 1.9.13 ]]         #
 #    This Example renders a pseudo 3d scene using raycasting and drawing is using ascii characters       #
 #          I do not not recommend creating stuff like this yourself using this language.                 #
 # This example should only show the capabilities of this language and the overall acceptable performance #
@@ -6,7 +6,7 @@
 # The view will rotate automatically, but you could enable controls if you want. You can also add more walls using the variables bofore the MAIN loop #
 # If manual control is enabled, you can move and look around using the W A S D keys #
 
-MANUAL_CONTROL = $true;
+MANUAL_CONTROL = $false;
 
 # Toogle fullscreen #
 gui.fullscreen $true;
@@ -126,7 +126,6 @@ new-point = {
 		
 		for i $rayCount {
 			angle = ($angle + $angleStep);
-			println "Setting ray at " $angle " degrees";
 			rays[$i] = (call $new-ray $x $y (cos $angle) (sin $angle));
 		};
 		angle = 0;

@@ -11,13 +11,15 @@ public class ExecutionState {
 		public byte ERROR = 1;
 	}
 	
+	public static final ExecutionState STATE_SUCCESS = new ExecutionState(ExitCodes.DONE, "");
+	public static final ExecutionState STATE_BLOCK_NULL = new ExecutionState(ExitCodes.ERROR, "Trying to execute non existing block");
+	public static final ExecutionState STATE_BLOCK_INTERRUPTED = new ExecutionState(ExitCodes.ERROR, "Cannot execute an interrupted block");
+	
 	public final byte exitCode;
 	public final String stateMessage;
-	public final Block block;
 	
-	public ExecutionState(Block block, byte exitCode, String stateMessage) {
+	public ExecutionState(byte exitCode, String stateMessage) {
 		this.exitCode = exitCode;
-		this.block = block;
 		this.stateMessage = stateMessage;
 	}
 	

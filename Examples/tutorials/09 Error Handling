@@ -1,0 +1,21 @@
+# You can also use try/catch blocks to catch potential errors in your script #
+# The try/catch syntax is similar like most programming languages: #
+
+try {
+	some command that does not exist;
+	
+} catch error {	# <- "error" is the variable name of the exception. You can choose any name you like #
+	println "The error was: " $error;
+};
+
+# And if you want to keep things very simple, you can use a try block standalone: #
+
+try {
+	exec "cls";
+};
+try {
+	gui.clear;
+};
+
+# This try example is useful if you want to clear the console but you dont know if the script is #
+# executed in the console (gui.* commands not available) or the DevScript editor #

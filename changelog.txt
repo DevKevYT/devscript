@@ -14,7 +14,15 @@
 		- gui.fullscreen [$true/$false]
 		(The command "clearConsole" is still available but will be removed in future releases by the "gui.clear" command)
 	- Started to make some plans to implement a simple graphics library to control java awt elements ;)
-
+	- Try statements can now have a catch block that executes when an error occured so you actually know when something went wrong!
+	  Example:
+	  try {
+	  	awdawdsdaw;
+	  } catch ex {
+	  	println "The exception was: " $ex;
+	  }
+	- Added error handling tutorial/examples for try/catch stuff and more examples
+	
 1.9.12:
 	- DevScript can now property handle the null variable $null. (="undefined")
 	- Added an explanation for the "wait" command

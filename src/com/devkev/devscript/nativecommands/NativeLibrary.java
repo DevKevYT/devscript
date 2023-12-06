@@ -18,6 +18,7 @@ import com.devkev.devscript.raw.Block;
 import com.devkev.devscript.raw.Command;
 import com.devkev.devscript.raw.ConsoleMain;
 import com.devkev.devscript.raw.DataType;
+import com.devkev.devscript.raw.ExecutionState;
 import com.devkev.devscript.raw.Library;
 import com.devkev.devscript.raw.Output;
 import com.devkev.devscript.raw.Process;
@@ -230,7 +231,25 @@ public class NativeLibrary extends Library {
 					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						((Block) args[0]).setAsTryCatch();
-						application.executeBlock((Block) args[0], false);
+						ExecutionState state = application.executeBlock((Block) args[0], false);
+						
+						return null;
+					}
+				},
+				
+				new Command("try", "block string string block", "Tries to execute the block and ignores errors. Example: try { } catch ex { println \"Exception was: \" $ex; }") {
+					@Override
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						
+						if(!args[1].toString().equals("catch"))
+							application.kill(block, "Invalid try/catch syntax see the examples");
+						
+						((Block) args[0]).setAsTryCatch();
+						ExecutionState state = application.executeBlock((Block) args[0], false);
+						Block catchBlock = (Block) args[3];
+						catchBlock.setVariable(args[2].toString(), state.stateMessage, true, false, true);
+						application.executeBlock(catchBlock, false);
+						
 						return null;
 					}
 				},

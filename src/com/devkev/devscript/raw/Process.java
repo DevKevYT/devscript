@@ -112,14 +112,16 @@ public class Process {
 		if(newThread) {
 			main.thread =  new Thread(new Runnable() {
 				public void run() {
-					start(main);
+					executeBlock(main, true);
+					//start(main);
 					main = null;
 				}
 			}, "process " + process_id);
 			main.thread.start();
 			return main.thread;
 		} else {
-			start(main);
+			executeBlock(main, true);
+			//start(main);
 			main = null;
 		}
 		return null;
@@ -154,32 +156,49 @@ public class Process {
 		return caseSensitive;
 	}
 	
-	private void start(Block block) {
-		if(block == null) return;
+	/**@param garbageCollector - If the process should remove variables after the block was executed.
+	 * Usually true, because the variables would not be accessible anymore anyway.
+	 * @param isConstructor - If the block is used as a constructor. This means, that variables created in this block are:
+	 * not garbegage collected and are isolated from other blocks.
+	 * @return The execution state wether this block executed successful or with an exception*/
+	public ExecutionState executeBlock(Block block, boolean garbageCollector, Object... args) {
+		if(block == null) block = getMain();
+		
+		/*The arguments are just variables declared in the block - local scope and removed afterwards, if requested*/
+		if(block != null) {
+			for(int i = 0; i < args.length; i++) 
+				setVariable(String.valueOf(i), args[i], true, false, block);
+		}
+		
+		//start(block);
+		if(block == null) return ExecutionState.STATE_BLOCK_NULL;
 		//aliveBlocks.add(block);
 		StringBuilder command = block.blockCode;
 		
-		block.exitCode = ExitCodes.DONE;
+		block.currentExecutionState = ExecutionState.STATE_SUCCESS;
 		block.alive = true;
 		block.executeIndex = 0;
 		block.interrupted = false;
-		if(!checkForInterrupt(block)) {
-			return;
-		}
+		if(!checkForInterrupt(block)) return ExecutionState.STATE_BLOCK_INTERRUPTED;
+		
 		while(block.executeIndex < block.blockCode.length()-1 && block.alive) {
 			executeCommand(command, block.executeIndex, true, block);
 		}
 		
 		//Searches for a variable called onexit with the type BLOCK
+		//If the executed block is MAIN, the script has finished
 		if(main == block) {
 			finalizeExit(0, "finished");
 			
 			if(listener != null) 
-				listener.done(main.exitCode); 
+				listener.done(main.currentExecutionState); 
 		}
 		
 		block.alive = false;
-		//aliveBlocks.remove(block);
+		
+		if(garbageCollector) garbageCollection(block);
+		
+		return block.currentExecutionState;
 	}
 	
 	/**@return false, if the block: <br>
@@ -541,23 +560,6 @@ public class Process {
 		return args;
 	}
 	
-	/**@param garbageCollector - If the process should remove variables after the block was executed.
-	 * Usually true, because the variables would not be accessible anymore anyway.
-	 * @param isConstructor - If the block is used as a constructor. This means, that variables created in this block are:
-	 * not garbegage collected and are isolated from other blocks.
-	 * @return The execution state wether this block executed successful or with an exception*/
-	public void executeBlock(Block block, boolean garbageCollector, Object... args) {
-		if(block == null) block = getMain();
-		
-		/*The arguments are just variables declared in the block - local scope and removed afterwards, if requested*/
-		if(block != null) {
-			for(int i = 0; i < args.length; i++) 
-				setVariable(String.valueOf(i), args[i], true, false, block);
-		}
-		start(block);
-		if(garbageCollector) garbageCollection(block);
-	}
-	
 	/**Clears all variables associated with the block*/
 	public void garbageCollection(Block block) {
 		if(block == null) return;
@@ -651,8 +653,15 @@ public class Process {
 			error("A java error happened outside of the devscript environment: " + errorMessage);
 			return;
 		} else {
-			//Check block and parent blocks. Also, maybe create a stacktrace?
-			if(block.inheritTryCatch()) {
+			
+			//If its a try/catch, just report any execution state without exiting the script.
+			//Sadly, this makes it not possible to create a stacktrace
+			Block inherit = block.inheritTryCatch();
+			
+			if(inherit != null) {
+				
+				inherit.interrupt();
+				inherit.currentExecutionState = new ExecutionState(ExitCodes.ERROR, errorMessage);
 				return;
 			}
 			
@@ -663,9 +672,7 @@ public class Process {
 			
 			finalizeExit(1, errorMessage);
 			
-			block.alive = false;
-			block.interrupted = true;
-			block.currentCommand = "";
+			block.interrupt();
 		}
 		
 		try {
@@ -680,7 +687,8 @@ public class Process {
 			e.printStackTrace();
 		}
 		
-		block.exitCode = ExitCodes.ERROR;
+		block.currentExecutionState = new ExecutionState(ExitCodes.ERROR, errorMessage);
+		
 		garbageCollection(main);
 	}
 	
@@ -855,7 +863,7 @@ public class Process {
 		finalizeExit(1, "JVM Killed");
 		
 		if(listener != null) {
-			listener.done(main.exitCode); 
+			listener.done(main.currentExecutionState); 
 		}
 	}
 }

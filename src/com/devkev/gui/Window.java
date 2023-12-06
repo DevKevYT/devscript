@@ -62,6 +62,7 @@ import com.devkev.devscript.raw.ApplicationListener;
 import com.devkev.devscript.raw.Block;
 import com.devkev.devscript.raw.Command;
 import com.devkev.devscript.raw.ConsoleMain;
+import com.devkev.devscript.raw.ExecutionState;
 import com.devkev.devscript.raw.Library;
 import com.devkev.devscript.raw.Output;
 import com.devkev.devscript.raw.Process;
@@ -93,6 +94,15 @@ public class Window {
 	FileSystem fileSystem;
 	
 	Console console;
+	
+	private final String exampleString = "# WELCOME TO THE DEVSCRIPT EDITOR TO HELP YOU GET STARTED!     #\r\n"
+			+ "# You can find examples and tutorials under: File > Examples   #\r\n"
+			+ "# List commands under 'help' or run this script!               #\r\n"
+			+ "# Thank you for using or trying out Devscript for your project #\r\n"
+			+ "\r\n"
+			+ "gui.size 1500 700;\r\n"
+			+ "help;\r\n"
+			+ "listvars;";
 	
 	public Window() {
 		
@@ -199,8 +209,8 @@ public class Window {
 			}
 		});
 		p.setApplicationListener(new ApplicationListener() {
-			public void done(int exitCode) {
-				console.consoleStatus.setText("Finished with Exit Code " + exitCode);
+			public void done(ExecutionState state) {
+				console.consoleStatus.setText("Finished with Exit Code " + state.exitCode);
 			}
 		});
 		
@@ -382,6 +392,7 @@ public class Window {
 		textArea = new JTextPane();
 		textArea.setFont(font);
 		textArea.setLayout(null);
+		textArea.setText(exampleString);
 		textArea.addKeyListener(new KeyListener() {
 			@Override
 			public void keyTyped(KeyEvent e) {

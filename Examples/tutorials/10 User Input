@@ -1,0 +1,40 @@
+# The main way to detect user input is with the "input" command #
+	
+	print "Please enter your name: ";
+	name = (input);
+	println Hello  $name !;
+
+# The console or DevScript console from the editor waits for input until the user presses ENTER #
+# Similar to the Java Scanner #
+
+# Another method is to use the pre defined variable "keyPressed" #
+# ATTENTION!! THIS VARIABLE IS ONLY AVAILABLE IF THE SCRIPT IS EXECUTED IN THE DEVSCRIPT EDITOR CONSOLE! #
+
+	loop {
+		gui.clear;
+		println "Key Pressed: " $keyCode;
+	};
+
+# If you want to create a game, its also a good idea to #
+# use a separate thread with a loop to detect key changes. This way you avoid input lag #
+# Take a look at: Examples > demos > Snake Game ! #
+
+	direction = 2; # 2: UP, 3: DOWN, 1: RIGHT, 0: LEFT #
+	
+	thread key-detect {
+		loop {
+			if ($keyCode == w) {
+				direction = 2;
+			} elseif ($keyCode == s) {
+				direction = 3;
+			} elseif ($keyCode == a) {
+				direction = 0;
+			} elseif ($keyCode == d) {
+				direction = 1;
+			};
+		};
+	};
+	
+	loop {
+		# Move the character according to the direction #
+	};
