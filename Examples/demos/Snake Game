@@ -15,6 +15,7 @@ direction = 0; # 0 up, 1 down, 2 left, 3 right #
 
 score = 0;
 gameOver = $false;
+gui.size 300 500;
 
 # make a 10 by 10 grid #
 for i $size {
