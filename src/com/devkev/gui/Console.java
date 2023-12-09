@@ -133,7 +133,6 @@ public class Console extends JFrame {
 			
 			@Override
 			public void keyPressed(KeyEvent e) {
-				System.out.println(e.getKeyChar());
 				if(p.isRunning()) {
 					//Set the variable "keyPressed" to the char that is pressed
 					p.setVariable("keyCode", e.getKeyChar(), false, false);
