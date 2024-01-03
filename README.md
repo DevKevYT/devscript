@@ -74,8 +74,8 @@ public class MyCommands extends Library {
 	//This is especially useful if you want to set up listeners for example key listeners for macros or something
 	@Override
 	public void scriptImport(Process process) {
-		//This function can execute script functions. Again, this is really useful for listeners.
-		//You could create a function in the script like keyPressed = {}; and call it from here.
+		//This function can execute script functions from your java code. Again, this is really useful for listeners.
+		//You could create a function in the script like keyPressed = { println "Pressed key" $0; }; and call it from here.
 		super.executeEventFunction("keyPressed", "A");
 	}
 	
