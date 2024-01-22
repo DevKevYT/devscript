@@ -1,0 +1,43 @@
+# This would just pause the script and print the result in the end #
+	result = (exec "ping google.com");
+	println "Ping result: " $result;
+
+# A better approach would be to use this overloaded command. The block executes everytime
+the "exec" command outputs something. The simplest thing would be to just print this output: # 
+	exec "ping google.com -n 3" {
+		println $0; # <- Variable names are the same as in functions #
+	};
+
+# You could also use a pre- defined function #
+	printPingResult = {
+		println $0;
+	};
+	exec "ping google.com -n 3" $printPingResult;
+
+# You can check for the operating system with the following command: #
+	os = (getOS);
+	println "Operating system is: " $os;
+
+
+# [[ ERROR HANDLING ]] #
+# If anything is printed in the errorstream of the shell, the "exec" command terminates immediately and throws an error #
+# So, without a try/catch the script would exit. #
+	
+	try {
+		exec "echo %FOO%"; # This environment variable does not exist #
+	} catch ex {
+		println "Shell command exited with an error: " $ex;
+	};
+	
+# A command with event function and error handling would look like this: #
+
+	try {
+		result = (exec "ping foo" {
+			println $0;
+		});
+		println "Ping result: " $result;
+	} catch ex {
+		println "Shell command exited with an error: " $ex;
+	};
+	
+	

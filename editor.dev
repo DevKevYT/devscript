@@ -1,0 +1,20 @@
+# Default CLI editor for DevScript 1.9.14 #
+# Written by DevKev						  #
+
+clearScreen = {
+	# For windows #
+	try {
+		exec "cls";
+	};
+	
+	# For linux #
+	try {
+		exec "clear";
+	};
+};
+
+call $clearScreen;
+
+loop {
+
+};

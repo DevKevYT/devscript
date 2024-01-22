@@ -33,7 +33,7 @@ public class Process {
 	
 	public long maxRuntime = 0; //Runtime in ms. If < 0, allowed runtime is infinite
 	private long currentChar = 0;
-	public final String version = "1.9.13"; 
+	public final String version = "1.9.14"; 
 	
 	private boolean caseSensitive = false;
 	
