@@ -821,12 +821,12 @@ public class NativeLibrary extends Library {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						
 						Block current = block;
-						while(current.parent != null) {
+						while(current.getParent() != null) {
 							if(current.isLoop()) {
 								current.interrupt();
 								return null; //current is a loop block
 							}
-							current = current.parent;
+							current = current.getParent();
 						}
 						
 						block.interrupted = true; //Interrupt this block
@@ -849,7 +849,7 @@ public class NativeLibrary extends Library {
 								found = true;
 								break;
 							}
-							current = current.parent;
+							current = current.getParent();
 						}
 						if(!found) application.warning("The return command has no effect here.");
 						return null;

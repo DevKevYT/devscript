@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 import com.devkev.devscript.raw.ExecutionState.ExitCodes;
 
-public class Block { //So stupid...
+public class Block {
 	
 	private Process host;
 	private ArrayList<Variable> variables = new ArrayList<>();
@@ -14,11 +14,13 @@ public class Block { //So stupid...
 	String currentCommand = "";
 	public Thread thread;  	//A block can also be attached to a thread. This variable would store the thread, the blockCode is executed in.
 						//Be careful. May be null
-	public volatile boolean alive = false; //Commands are only executed, if the block is alive
+	
+	private Block parent;
+	
+	public volatile boolean alive = false; //Commands are only executed, if the block is alive and the parent block is alive
 	public volatile boolean interrupted = false; //If true, it stays true, until next block execution
 	public volatile boolean continued = false;
 	
-	public Block parent;
 	private byte stack = 0;
 	
 	ArrayList<Command> cached = new ArrayList<>(1);
@@ -43,7 +45,7 @@ public class Block { //So stupid...
 		ArrayList<Object> args;
 	}
 	
-	public Block(StringBuilder blockCode, Block parent, Process host) {
+	Block(StringBuilder blockCode, Block parent, Process host) {
 		this.blockCode = blockCode;
 		this.host = host;
 		
@@ -201,6 +203,10 @@ public class Block { //So stupid...
 	
 	public ArrayList<Variable> getLocalVariables() {
 		return variables;
+	}
+	
+	public Block getParent() {
+		return parent;
 	}
 	
 	public Object getVariable(String name) {

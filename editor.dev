@@ -11,6 +11,11 @@ clearScreen = {
 	try {
 		exec "clear";
 	};
+	
+	# In case the script gets exeuted in the DevScript Console # 
+	try {
+		gui.clear;
+	};
 };
 
 call $clearScreen;

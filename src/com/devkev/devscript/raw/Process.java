@@ -27,7 +27,7 @@ public class Process {
 	private BufferedReader inputReader;
 	private InputStream inputStream;
 	
-	Block main;
+	volatile Block main;
 	//Main block is not never in the list, since the process gets terminated, if main is killed.
 	boolean breakRequested = false;
 	
@@ -208,10 +208,10 @@ public class Process {
 	 * <li>Parent block is interrupted and not null</li>
 	 * <li>The parent block is not a constructor</li>*/
 	private boolean checkForInterrupt(Block block) {
-		if(block.parent == null) return block.alive && !block.interrupted;
+		if(block.getParent() == null) return block.alive && !block.interrupted;
 		else return block.alive && !block.interrupted
-				&& (block.parent.alive && !block.parent.interrupted
-				|| block.parent.isObject());
+				&& (block.getParent().alive && !block.getParent().interrupted
+				|| block.getParent().isObject());
 	}
 	
 	/**Interprets a command and its arguments*/
@@ -715,12 +715,12 @@ public class Process {
 		boolean anyThread = false;
 		
 		Block current = block;
-		while(block.parent != null) {
+		while(block.getParent() != null) {
 			if(current.thread != null)  {
 				anyThread = true;
 				break;
 			}
-			current = block.parent;
+			current = block.getParent();
 		}
 			
 		
