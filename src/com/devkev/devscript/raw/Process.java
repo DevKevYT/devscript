@@ -60,8 +60,9 @@ public class Process {
 	 * <br>In worst case, the data usage of the command library could be doubled.
 	 * <br>Use {@link Process#setCacheLimit(int limit)} to limit cache usage
 	 * It also imports the NativeLibrary (basic commands like if,println ...) at default.
-	 * If you don't want these native commands, call {@link Process#clearLibraries()} before adding your custom ones*/
-	public Process(boolean useCache) {
+	 * If you don't want these native commands, call {@link Process#clearLibraries()} before adding your custom ones
+	 * @throws Exception */
+	public Process(boolean useCache) throws Exception {
 		includeLibrary(new NativeLibrary());
 		
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
@@ -158,7 +159,6 @@ public class Process {
 	
 	/**@param garbageCollector - If the process should remove variables after the block was executed.
 	 * Usually true, because the variables would not be accessible anymore anyway.
-	 * @param isConstructor - If the block is used as a constructor. This means, that variables created in this block are:
 	 * not garbegage collected and are isolated from other blocks.
 	 * @return The execution state wether this block executed successful or with an exception*/
 	public ExecutionState executeBlock(Block block, boolean garbageCollector, Object... args) {
@@ -170,9 +170,7 @@ public class Process {
 				setVariable(String.valueOf(i), args[i], true, false, block);
 		}
 		
-		//start(block);
 		if(block == null) return ExecutionState.STATE_BLOCK_NULL;
-		//aliveBlocks.add(block);
 		StringBuilder command = block.blockCode;
 		
 		block.currentExecutionState = ExecutionState.STATE_SUCCESS;
@@ -219,10 +217,8 @@ public class Process {
 		
 		if(!block.alive) return null;
 		
-		if(block.getStack() > 10) {
-			ProcessUtils.panic("Max block stack exceeded (10)");
-			return null;
-		}
+		if(block.getStack() > 10) throw new ScriptHostException("Max block stack exceeded (10)");
+		
 		block.currentCommand = command.toString();
 		ArrayList<Object> args = interpretArguments(command, startIndex, updateExecuteIndex, block);
 		if(args == null) return null;
@@ -590,13 +586,45 @@ public class Process {
 		return block.getVariable(name);
 	}
 	
+	/**Adding a library with the same name as an already included one will result in an exception.
+	 * Same goes with commands.
+	 * Library names are case-sensitive<br>
+	 * Command names are checked for case sensitivity, if {@link Process#setCaseSensitive(boolean)} is true
+	 * @param lib The library to add
+	 * @throws Exception 
+	 * */
 	public void includeLibrary(Library lib) {
 		if(lib.bound != null) {
-			if(lib.bound != this) {
-				throw new IllegalAccessError("This Library instance is already part of a different process. Try creating a new one: includeLibrary(new Library())");
+			if(lib.bound != this) 
+				throw new ScriptHostException("This Library instance is already part of a different process. Try creating a new one: includeLibrary(new Library())");
+		}
+		
+		HookedLibrary hadd = new HookedLibrary(lib);
+		
+		//Check for command or library name duplicates
+		for(HookedLibrary hlib : getLibraries()) {
+			if(hlib.name.equals(hadd.name))
+				throw new ScriptHostException("A library with the name: \"" + lib.getName() + "\" was already added to the Process " + this.toString());
+			for(Command c : hlib.commands) {
+				for(Command c2 : hadd.commands) {
+					if(this.isCaseSensitive() ? c.name.equals(c2.name) : c.name.toLowerCase().equals(c2.name.toLowerCase()) 
+							&& c.argumentsAsString.equals(c2.argumentsAsString)
+							&& c.commandNameOffset == c2.commandNameOffset) 
+						throw new ScriptHostException("Trying to add a library to the process that contains one or more conflicting commands: " + c.name + " " + c.argumentsAsString);
+				}
 			}
 		}
-		libraries.add(new HookedLibrary(lib));
+		//Check passed
+		libraries.add(hadd);
+	}
+	
+	/**Includes the ~70 default commands for scripts.
+	 * This function is just a wrapper for <br>
+	 * <code>includeLibrary(new NativeLibrary())</code>
+	 * @throws Exception 
+	 */
+	public void includeNativeLibrary() throws Exception {
+		includeLibrary(new NativeLibrary());
 	}
 	
 	public void clearLibraries() {

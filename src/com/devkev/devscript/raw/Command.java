@@ -2,8 +2,6 @@ package com.devkev.devscript.raw;
 
 
 import java.util.ArrayList;
-import static com.devkev.devscript.raw.ProcessUtils.panic;
-
 import com.devkev.devscript.raw.ProcessUtils.Type;
 
 public abstract class Command {
@@ -52,9 +50,9 @@ public abstract class Command {
     }
     
     private void init(String name, String arguments, String usage, int nameOffset, Property ... settingsArgs) {
-    	if(name.length() < MIN_NAME_LENGTH) panic("Command names need to have at least " + MIN_NAME_LENGTH + " character(s)!");
-        if(name.length() >= MAX_NAME_LENGTH) panic("Command names need to have less than " + MIN_NAME_LENGTH + " characters!");
-        if(Alphabet.partOf(name) && (!name.contains("<") && !name.contains(">")) || name.contains(" ")) panic("Command '" + name + "' contains illegal/reserved characters!");
+    	if(name.length() < MIN_NAME_LENGTH) throw new ScriptHostException("Command names need to have at least " + MIN_NAME_LENGTH + " character(s)!");
+        if(name.length() >= MAX_NAME_LENGTH) throw new ScriptHostException("Command names need to have less than " + MIN_NAME_LENGTH + " characters!");
+        if(Alphabet.partOf(name) && (!name.contains("<") && !name.contains(">")) || name.contains(" ")) throw new ScriptHostException("Command '" + name + "' contains illegal/reserved characters!");
         
         this.name = name;
         this.description = usage;
@@ -65,14 +63,14 @@ public abstract class Command {
         	String[] splitted = arguments.split(" ");
         	for(int i = 0; i < splitted.length; i++) {
         		Type t = Type.getType(splitted[i].replaceAll(ARRAY_INDICATOR, "")); //Remove all array indicators
-            	if(t == null) panic("Invalid type name for argument " + i + "(" + splitted[i] + ") on command: " + name);
+            	if(t == null) throw new ScriptHostException("Invalid type name for argument " + i + "(" + splitted[i] + ") on command: " + name);
             	if(t == Type.INTEGER || t == Type.FLOAT || t == Type.NUMBER) t = Type.STRING;
             	if(t == Type.NULL) continue;
             	if(t == Type.CONTINUE && args.size() > 0) {
             		repeated = true;
-            		if(nameOffset > args.size()) panic("Cannot insert command name after infinite arguments");
+            		if(nameOffset > args.size()) throw new ScriptHostException("Cannot insert command name after infinite arguments");
             		break;
-            	} else if(t == Type.CONTINUE && args.size() == 0) panic("Need to know wich argument type to repeated at command: " + name);
+            	} else if(t == Type.CONTINUE && args.size() == 0) throw new ScriptHostException("Need to know wich argument type to repeated at command: " + name);
             	if(t != Type.CONTINUE) args.add(new DataType(t, splitted[i].contains(ARRAY_INDICATOR)));
         	}
         	no_arguments = false;

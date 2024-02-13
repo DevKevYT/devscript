@@ -1233,6 +1233,52 @@ public class NativeLibrary extends Library {
 							return null;
 						}
 					}
+				},
+				
+				//Calling this command a second time with the same command name wont to anything
+				new Command("define", "string block", "Defines a custom command at runtime") {
+					@Override
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						
+						if(application.getLibrary("define-" + args[0].toString()) != null) {
+							application.warning("Command " + args[0].toString() + " already defined. Skipping");
+							return null;
+						}
+						
+						for(HookedLibrary l : application.getLibraries()) {
+							for(Command c : l.commands) {
+								if(c.name.toLowerCase().equals(args[0].toString().toLowerCase())) {
+									application.kill(block, "Cannot define ambiguous command names");
+									return null;
+								}
+							}
+						}
+						
+						final Block fun = (Block) args[1];
+						
+						Library lib = new Library("define-" + args[0].toString()) {
+							@Override
+							public void scriptImport(Process process) { }
+							@Override
+							public void scriptExit(Process process, int exitCode, String errorMessage) { }
+							@Override
+							public Command[] createLib() {
+								return new Command[] {
+									new Command(args[0].toString(), "??? ...", "") {
+										@Override
+										public Object execute(Object[] args, Process application, Block block) throws Exception {
+											application.executeBlock(fun, true, args);
+											return null;
+										}
+									}
+								};
+							}
+						};
+						
+						
+						application.includeLibrary(lib);
+						return null;
+					}
 				}
 		};
 	}

@@ -16,9 +16,7 @@ public class Variable {
 		this.FINAL = FINAL;
 		this.block = block;
 		this.permanent = permanent;
-		if(block == null) {
-			ProcessUtils.panic("Can't declare a non-permanent variable with a null block while process is running");
-		}
+		if(block == null) throw new ScriptHostException("Can't declare a non-permanent variable with a null block while process is running");
 	}
 	
 	/**@return false, if the variable assertion failed*/

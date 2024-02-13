@@ -57,6 +57,7 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 
+import com.devkev.devscript.nativecommands.NativeLibrary;
 import com.devkev.devscript.raw.ApplicationInput;
 import com.devkev.devscript.raw.ApplicationListener;
 import com.devkev.devscript.raw.Block;
@@ -66,6 +67,7 @@ import com.devkev.devscript.raw.ExecutionState;
 import com.devkev.devscript.raw.Library;
 import com.devkev.devscript.raw.Output;
 import com.devkev.devscript.raw.Process;
+import com.devkev.devscript.raw.ScriptHostException;
 
 public class Window {
 	//TODO add case sensitive option
@@ -104,7 +106,7 @@ public class Window {
 			+ "help;\r\n"
 			+ "listvars;";
 	
-	public Window() {
+	public Window() throws Exception {
 		
 		try {
 	        UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
@@ -208,6 +210,7 @@ public class Window {
 				};
 			}
 		});
+		
 		p.setApplicationListener(new ApplicationListener() {
 			public void done(ExecutionState state) {
 				console.consoleStatus.setText("Finished with Exit Code " + state.exitCode);
@@ -341,17 +344,24 @@ public class Window {
 			public void actionPerformed(ActionEvent e) {
 				if(p.isRunning()) return;
 				
-				console.consoleText.setText("");
-				console.toFront();
-				console.setEnabled(true);
-				console.consoleStatus.setText("Running ...");
-				console.setVisible(true);	
-				//window.setEnabled(false);
-				
-				p.file = openedFile;
-				p.setCaseSensitive(false);
-				p.execute(textArea.getText(), true);
-				p.setVariable("keyCode", "", false, true);
+				try {
+					console.consoleText.setText("");
+					console.toFront();
+					console.setEnabled(true);
+					console.consoleStatus.setText("Running ...");
+					console.setVisible(true);	
+					//window.setEnabled(false);
+					
+					p.file = openedFile;
+					p.setCaseSensitive(false);
+					p.clearLibraries();
+					p.includeLibrary(new NativeLibrary());
+					p.execute(textArea.getText(), true);
+					p.setVariable("keyCode", "", false, true);
+				} catch(ScriptHostException ex) {
+					console.consoleText.setText(ex.getMessage());
+					ex.printStackTrace();
+				}
 			}
 		});
 		m3.add(run);

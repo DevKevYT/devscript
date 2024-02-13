@@ -2,7 +2,6 @@ package com.devkev.devscript.raw;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URLDecoder;
 
@@ -19,7 +18,7 @@ public class ConsoleMain {
 	 * When nogui is not given, the gui program will start with the given script from the command line
 	 * */
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws Exception {
 		boolean initGUI = true;
 		String scriptToExecute = null;
 		String filePath = null;

@@ -43,9 +43,9 @@ public final class ProcessUtils {
 		}
 	}
 	
-	public static DataType toDataType(Object object) { //TODO arrays
+	public static DataType toDataType(Object object) {
 		if(object == null) return new DataType(Type.NULL, false);
-    	if(object.getClass().isArray()) panic("Single objects can't hold arrays. Use the Process.Array class to use arrays");
+    	if(object.getClass().isArray()) throw new ScriptHostException("Single objects can't hold arrays. Use the Process.Array class to use arrays");
     	
     	if(object instanceof String) return new DataType(Type.STRING, false);
     	else if(object instanceof Integer) return new DataType(Type.STRING, false);
@@ -66,11 +66,6 @@ public final class ProcessUtils {
 		if(type1.type == Type.NULL) return true;
 		//if(type2.type == Type.ANY) return true;
 		return type1.type == type2.type;
-	}
-	
-	/**Throws an error if it can't get fixed/ignored. Panics should not happen.*/
-	public static void panic(String message) {
-		throw new IllegalAccessError("An error happened outside of the devscript environment: " + message);
 	}
 	
 	/**Test, if the given string is convert-able to integer. (Contains only numbers)*/

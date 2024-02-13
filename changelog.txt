@@ -11,7 +11,20 @@
 	- Created a new default editor version as it was for a very old version (Somewhere around 1.8.X). File got renamed from Editor.txt to editor.dev
 	- Fixed issued where, if a script ran some sub-threads, these threads would not be terminated if the main method was terminated
 	  Same goes with sub-scripts
-
+	- Added the command "define <string> <block>"
+	  This command defines a custom command in a new auto-imnported library.
+	  The difference to functions is, that you can call it just like a command:
+	  
+	  In this example, we create a command "out" as println "alias" but you can define any sub routines you like
+	  Variables work just like functions $0, $1, $2...
+	    
+	    define "out" {
+	  	  println $0;
+	    };
+	    out "Hello World";
+    - Added examples for the "define" function in the "function" tutorial section. You can find them under Examples -> tutorials -> 05 Functions
+    - Now checking for command duplicates or library name duplicates when including libraries
+    - Added the possibility to read java exceptions (outside of devscript) that may occur in the devscript console.
 1.9.13:
 	- The "import" command got very few love the last updates:
 		- The class of the imported .jar file only has to extend the "Library" class and does not need to be named "CustomLibrary"
