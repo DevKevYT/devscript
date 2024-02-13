@@ -106,6 +106,54 @@ public class Window {
 			+ "help;\r\n"
 			+ "listvars;";
 	
+	private Library guiCommands = new Library("Custom DevScript Editor Commands") {
+		
+		public void scriptImport(Process process) {}
+		public void scriptExit(Process process, int exitCode, String errorMessage) {}
+		@Override
+		public Command[] createLib() {
+			return new Command[] {
+				new Command("clearConsole", "", "Deprecated since 1.9.13 and removed in future releases. Please use 'gui.clear'") {
+					@Override
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						console.consoleText.setText("");
+						return null;
+					}
+				},
+				
+				new Command("gui.clear", "", "Clears the console") {
+					@Override
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						console.consoleText.setText("");
+						return null;
+					}
+				},
+				
+				new Command("gui.size", "string string", "Sets the console window size in pixels") {
+					@Override
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						if(isInteger(args[0].toString()) && isInteger(args[1].toString())) {
+							console.setSize(Integer.valueOf(args[0].toString()), Integer.valueOf(args[1].toString()));
+						} else application.kill(block, "Argument 1 and 2 need to be positive integers");
+						return null;
+					}
+				},
+				
+				new Command("gui.fullscreen", "boolean", "Toggles fullscreen for the console window") {
+					@Override
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						if(args[0].toString().equals("true")) {
+							console.setExtendedState(JFrame.MAXIMIZED_BOTH); 
+						} else {
+							console.setExtendedState(JFrame.NORMAL); 
+						}
+						return null;
+					}
+				}
+			};
+		}
+	};
+	
 	public Window() throws Exception {
 		
 		try {
@@ -164,52 +212,6 @@ public class Window {
 			}
 		};
 		p.setInput(input);
-		p.includeLibrary(new Library("Custom DevScript Editor Commands") {
-			public void scriptImport(Process process) {}
-			public void scriptExit(Process process, int exitCode, String errorMessage) {}
-			@Override
-			public Command[] createLib() {
-				return new Command[] {
-					new Command("clearConsole", "", "Deprecated since 1.9.13 and removed in future releases. Please use 'gui.clear'") {
-						@Override
-						public Object execute(Object[] args, Process application, Block block) throws Exception {
-							console.consoleText.setText("");
-							return null;
-						}
-					},
-					
-					new Command("gui.clear", "", "Clears the console") {
-						@Override
-						public Object execute(Object[] args, Process application, Block block) throws Exception {
-							console.consoleText.setText("");
-							return null;
-						}
-					},
-					
-					new Command("gui.size", "string string", "Sets the console window size in pixels") {
-						@Override
-						public Object execute(Object[] args, Process application, Block block) throws Exception {
-							if(isInteger(args[0].toString()) && isInteger(args[1].toString())) {
-								console.setSize(Integer.valueOf(args[0].toString()), Integer.valueOf(args[1].toString()));
-							} else application.kill(block, "Argument 1 and 2 need to be positive integers");
-							return null;
-						}
-					},
-					
-					new Command("gui.fullscreen", "boolean", "Toggles fullscreen for the console window") {
-						@Override
-						public Object execute(Object[] args, Process application, Block block) throws Exception {
-							if(args[0].toString().equals("true")) {
-								console.setExtendedState(JFrame.MAXIMIZED_BOTH); 
-							} else {
-								console.setExtendedState(JFrame.NORMAL); 
-							}
-							return null;
-						}
-					}
-				};
-			}
-		});
 		
 		p.setApplicationListener(new ApplicationListener() {
 			public void done(ExecutionState state) {
@@ -356,6 +358,7 @@ public class Window {
 					p.setCaseSensitive(false);
 					p.clearLibraries();
 					p.includeLibrary(new NativeLibrary());
+					p.includeLibrary(guiCommands);
 					p.execute(textArea.getText(), true);
 					p.setVariable("keyCode", "", false, true);
 				} catch(ScriptHostException ex) {

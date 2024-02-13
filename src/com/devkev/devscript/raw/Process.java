@@ -98,7 +98,7 @@ public class Process {
 			
 			for(Variable var : mainVars) {
 				if(var.permanent)
-					main.setVariable(var.name, var.value, var.FINAL, true, true);
+					main.setVariable(var.name, var.value, var.canBeChanged, true, true);
 			}
 			
 			main.thread = null;
@@ -165,10 +165,18 @@ public class Process {
 		if(block == null) block = getMain();
 		
 		/*The arguments are just variables declared in the block - local scope and removed afterwards, if requested*/
-		if(block != null) {
-			for(int i = 0; i < args.length; i++) 
-				setVariable(String.valueOf(i), args[i], true, false, block);
+		if(block != null && args.length > 0) {
+			Array arr = new Array();
+			//1.9.14: Also add the arguments as an array with the name $args
+			for(int i = 0; i < args.length; i++) {
+				block.setVariable(String.valueOf(i), args[i], false, false, true);
+				//setVariable(String.valueOf(i), args[i], true, false, block);
+				arr.push(args[i]);
+			}
+			
+			block.setVariable("args", arr, false, false, true);
 		}
+		
 		
 		if(block == null) return ExecutionState.STATE_BLOCK_NULL;
 		StringBuilder command = block.blockCode;
@@ -271,9 +279,8 @@ public class Process {
 								//commands_executed++;
 								return c.execute(args.toArray(new Object[args.size()]), this, block);
 							} catch (Exception e) {
-								kill(block, "Failed to execute command " + c.name + ": ");
+								kill(block, "Failed to execute command " + c.name + " (" + e.toString() + ") more info can be found in the stacktrace");
 								e.printStackTrace();
-								return null;
 							}
 						}
 					}
@@ -314,7 +321,7 @@ public class Process {
 									//commands_executed++;
 									return c.execute(args.toArray(new Object[args.size()]), this, block);
 								} catch (Exception e) {
-									kill(block, "Failed to execute command " + c.name + " (" + e.toString() + ")");
+									kill(block, "Failed to execute command " + c.name + " (" + e.toString() + ") more info can be found in the stacktrace");
 									e.printStackTrace();
 									return null;
 								}

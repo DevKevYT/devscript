@@ -1,4 +1,4 @@
-#FUNCTION AND BLOCK BASICS by DevKev for version 1.9.10#
+#FUNCTION AND BLOCK BASICS by DevKev for version 1.9.10 updated for 1.9.14#
 
 #You can declare a function like a variable (A function is basically just a variable with the type "Block" in DevScript
 To declare blocks, you can use any code wrapped by a "{" and "}"#
@@ -25,34 +25,79 @@ Flags are set automatically, but you might want to know this for debugging purpo
 
 
 #To call, or execute a function, use the "call" command#
-call $printSomeText;
+	call $printSomeText;
 
 
-#Pass some arguments to a function. Arguments inside the function are disguised as $0, $1 etc., depending on how many arguments you pass#
-printTextXTimes = {
-	amount = $0;	#<- You can set a new variable with a better name to make the code more readable#
-	for i $amount {
-		println $1;
+# Pass some arguments to a function. Arguments inside the function are disguised as $0, $1 etc., depending on how many arguments you pass#
+	printTextXTimes = {
+		amount = $0;	#<- You can set a new variable with a better name to make the code more readable#
+		for i $amount {
+			println $1;
+		};
 	};
-};
-call $printTextXTimes 3 "text";
+	call $printTextXTimes 3 "text";
 
+# Passed arguments are also stored in the array "args" (similar to java's main(String[] args) function)
+# Use whatever method you prefer. Every mothod has its special use cases.
+	printText = {
+		for i (length $args) {
+			println $args[$i];
+		};
+	};
+	call $printText "text1" "foo" "bar";
+
+# These argument variables cannot be modified
 
 #Functions can also return values. Normally it is "null":#
-add = {
-	num1 = $0;
-	num2 = $1;
-	result = ($num1 + $num2);
-	return $result;
-};
-println (call $add 2 4);
+	add = {
+		num1 = $0;
+		num2 = $1;
+		result = ($num1 + $num2);
+		return $result;
+	};
+	println (call $add 2 4);
 
 
 #This is a shorter version:#
-add = {
-	return ($0 + $1);
-};
-println (call $add 2 4);
+	add = {
+		return ($0 + $1);
+	};
+	println (call $add 2 4);
 
 
+# An alternative to creating classic functions is the possibility to create custom commands
+# These can be called without the "call" command but are limited to non already existing command names
+# and cannot be modified while the script is running, once declared
+# You can use the "define [STRING] [BLOCK]" command to do this:
+
+	define out {
+		if (testfor "0") {
+			println $0;
+		}
+	};
+	out "Hello World";
+
+# This example just creates an alias for the "println" command but only prints something is an argument is passed (Checking with the "testfor" command, if the variable "0" is present)
+# The "println" command without arguments would print a blanc line.
+# As you can see, variables in the block work just like functions. 
+# Arguments are passed as $0, $1, and so on. Or use the $args array described above
+
+	define choice {
+		loop {
+			print $0 "[y/n]: ";
+			choice = (input);
+			println $choice;
+			if ($choice == y) {
+				return $true;
+			} elseif (choice == n) {
+				return $false;
+			} else {
+				println "Invalid input. Please enter 'y' for yes or 'n' for no";
+			};
+		};
+	};
+	result = (choice "Is DevScript a good scripting language?");
+	println "Your choice was: " $result;
+	
+# This snippet creates a yes/no "choice" command that creates a user input prompt and returns true or false
  

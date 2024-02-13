@@ -7,6 +7,7 @@
 		type = (exec "echo %PROCESSOR_ARCHITECTURE%"); <- echo the %PROCESSOR_ARCHITECTURE% Variable in a batch shell and save the output in the variable "type"
 		println "This computer runs on " $type;
 	  More examples are written under Examples > tutorials > "11 Work with shell commands" as this command can get quite complex now
+	- Removed mac support
 	- Reworked the command line arguments for the script jar as they were kinda bugged. Arguments stayed the same
 	- Created a new default editor version as it was for a very old version (Somewhere around 1.8.X). File got renamed from Editor.txt to editor.dev
 	- Fixed issued where, if a script ran some sub-threads, these threads would not be terminated if the main method was terminated
@@ -16,6 +17,7 @@
 	  The difference to functions is, that you can call it just like a command:
 	  
 	  In this example, we create a command "out" as println "alias" but you can define any sub routines you like
+	  
 	  Variables work just like functions $0, $1, $2...
 	    
 	    define "out" {
@@ -24,7 +26,15 @@
 	    out "Hello World";
     - Added examples for the "define" function in the "function" tutorial section. You can find them under Examples -> tutorials -> 05 Functions
     - Now checking for command duplicates or library name duplicates when including libraries
-    - Added the possibility to read java exceptions (outside of devscript) that may occur in the devscript console.
+    - Added the possibility to read java exceptions (outside of devscript, "script host" exceptions) that may occur in the devscript console.
+    - Added the command "testfor [STRING]". Returns true if the given name is an accessible variable. False if the variable is not accessible or does not exist
+    - In addition to the traditional $0, $1 ... Variable names in functions, the arguments are also passed as array with the name $args.
+      This allows for easier argument handling. Added this feature to the tutorial "05 Functions"
+    - In some update, the command line arguments stopped working. They are fixed again.
+    - Added the feature in the GUI to "install" DevScript. This will associate .dev files with the editor when double clicked (Windows only)
+      Don't worry, this will just add a regestry key called [coming soon]
+      The GUI also gives an option to "uninstall" e.g. remove the registry key
+      
 1.9.13:
 	- The "import" command got very few love the last updates:
 		- The class of the imported .jar file only has to extend the "Library" class and does not need to be named "CustomLibrary"

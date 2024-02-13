@@ -138,7 +138,7 @@ public class Block {
 	}
 	
 	/**@return true, if handled, that means a variable with the name was found or a variable was created*/
-	public boolean setVariable(String name, Object value, boolean FINAL, boolean permanent, boolean allowCreation) {
+	public boolean setVariable(String name, Object value, boolean canBeChanged, boolean permanent, boolean allowCreation) {
 		if(name.equals("true")) return true;
 		else if(name.equals("false")) return true;
 		else if(name.equals("null")) return true;
@@ -150,7 +150,7 @@ public class Block {
 		
 		for(Variable v : variables) {
 			if(v.name.equals(name)) {
-				if(!v.FINAL) {// || v.permanent) {
+				if(v.canBeChanged) {// || v.permanent) {
 					if(!v.setValue(value, true)) {
 						host.kill(this, "Failed to assign type " + value + " to existing variable " + v.value);
 						checkForBlockInheritage(value, this);
@@ -161,14 +161,14 @@ public class Block {
 		}
 		//If not found, check the parents!
 		if(parent != null && !isConstrucor) {
-			if(parent.setVariable(name, value, FINAL, permanent, false)) {
+			if(parent.setVariable(name, value, canBeChanged, permanent, false)) {
 				checkForBlockInheritage(value, this);
 				return true;
 			}
 		}
 		
 		if(allowCreation) {
-			this.variables.add(new Variable(name, value, FINAL, permanent, this));
+			this.variables.add(new Variable(name, value, canBeChanged, permanent, this));
 			checkForBlockInheritage(value, this);
 			return true;
 		}
@@ -181,7 +181,7 @@ public class Block {
 	
 	public void removeVariable(String name) {
 		for(Variable v : variables) {
-			if(v.name.equals(name) && !v.FINAL) {
+			if(v.name.equals(name) && v.canBeChanged) {
 				variables.remove(v);
 				return;
 			}

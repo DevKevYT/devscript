@@ -345,43 +345,27 @@ public class NativeLibrary extends Library {
 				
 				new Command("exec", "string", "Executes a shell command. Output only and limited to one command.") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-					String OS = System.getProperty("os.name", "generic").toLowerCase();
+						String OS = System.getProperty("os.name", "generic").toLowerCase();
+							
+						ProcessBuilder builder = null;
 						
-					if ((OS.indexOf("mac") >= 0) || (OS.indexOf("darwin") >= 0)) {
-				    	//mac
-						ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", args[0].toString());
-						process = builder.start();
-						
-						execReader =  new BufferedReader(new InputStreamReader(process.getInputStream()));
-						String line = null;
-						while ( (line = execReader.readLine()) != null) {
-							application.log(line, true);
+						if (OS.indexOf("win") >= 0) {
+							builder = new ProcessBuilder("cmd", "/c", args[0].toString());
+						} else if (OS.indexOf("nux") >= 0) {
+							builder = new ProcessBuilder("/bin/bash", "-c", args[0].toString());
+						} else {
+							application.error("Failed to determine operating system");
 						}
-						execReader.close();
-
-						execErrorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-						line = null;
-						String complete = "";
-						while ( (line = execErrorReader.readLine()) != null) {
-							application.log(line, true);
-							complete += line;
-						}
-						execErrorReader.close();
-						process.destroy();
-						return complete;
 						
-					} else if (OS.indexOf("win") >= 0) {
-						//windows
-						ProcessBuilder builder = new ProcessBuilder("cmd", "/c", args[0].toString());
 						process = builder.start();
-
+	
 						execReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 						String line = null;
 						while ( (line = execReader.readLine()) != null) {
 							application.log(line, true);
 						}
 						execReader.close();
-
+	
 						execErrorReader =  new BufferedReader(new InputStreamReader(process.getErrorStream()));
 						line = null;
 						while ( (line = execErrorReader.readLine()) != null) {
@@ -390,30 +374,8 @@ public class NativeLibrary extends Library {
 						execErrorReader.close();
 						process.destroy();
 						
-					} else if (OS.indexOf("nux") >= 0) {
-						//linux
-						ProcessBuilder builder = new ProcessBuilder("/bin/bash", "-c", args[0].toString());
-						process = builder.start();
-						
-						execReader =  new BufferedReader(new InputStreamReader(process.getInputStream()));
-						String line = null;
-						while ( (line = execReader.readLine()) != null) {
-							application.log(line, true);
-						}
-						execReader.close();
-
-						execErrorReader =  new BufferedReader(new InputStreamReader(process.getErrorStream()));
-						line = null;
-						while ( (line = execErrorReader.readLine()) != null) {
-							application.log(line, true);
-						}
-						execErrorReader.close();
-						process.destroy();
-						
-					} else application.error("Failed to determine operating system");
 						return null;
 					}
-					
 				},
 				
 				new Command("script", "string", "Executes a new script sub-process with its parent in- and outputs") {
@@ -692,8 +654,9 @@ public class NativeLibrary extends Library {
 				new Command("call", "block ??? ...", "Executes a function (Variable that is a block: x = { function code... }. You can also pass arguments. Access them inside the block with $0 $1 etc...Returns the returned value of the function") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						Block b = (Block) args[0];
-						for(int i = 1; i < args.length; i++) application.setVariable(String.valueOf(i-1), args[i], false, false, b);
-						application.executeBlock(b, true);
+						ArrayList<Object> funArgs = new ArrayList<>(1);
+						for(int i = 1; i < args.length; i++) funArgs.add(args[i]);
+						application.executeBlock(b, true, funArgs.toArray(new Object[funArgs.size()]));
 						return b.functionReturn;
 					}
 				},
@@ -1255,6 +1218,7 @@ public class NativeLibrary extends Library {
 						}
 						
 						final Block fun = (Block) args[1];
+						fun.setAsFunction();
 						
 						Library lib = new Library("define-" + args[0].toString()) {
 							@Override
@@ -1268,7 +1232,7 @@ public class NativeLibrary extends Library {
 										@Override
 										public Object execute(Object[] args, Process application, Block block) throws Exception {
 											application.executeBlock(fun, true, args);
-											return null;
+											return fun.functionReturn;
 										}
 									}
 								};
@@ -1278,6 +1242,13 @@ public class NativeLibrary extends Library {
 						
 						application.includeLibrary(lib);
 						return null;
+					}
+				},
+				
+				new Command("testfor", "string", "Checks if a variable exists and is accessible from the block this command is called") {
+					@Override
+					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						return block.getVariable(args[0].toString()) != null;
 					}
 				}
 		};
