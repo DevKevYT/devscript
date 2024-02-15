@@ -5,7 +5,7 @@
 # A better approach would be to use this overloaded command. The block executes everytime
 the "exec" command outputs something. The simplest thing would be to just print this output: # 
 	exec "ping google.com -n 3" {
-		println $0; # <- Variable names are the same as in functions #
+		println $0; # <- Variable names are the same as in functions. In this case, this would be a line from the command output#
 	};
 
 # You could also use a pre- defined function #
@@ -18,6 +18,7 @@ the "exec" command outputs something. The simplest thing would be to just print 
 	os = (getOS);
 	println "Operating system is: " $os;
 
+# Supported Operating Systems are Windows (cmd) and Linux (bash)
 
 # [[ ERROR HANDLING ]] #
 # If anything is printed in the errorstream of the shell, the "exec" command terminates immediately and throws an error #

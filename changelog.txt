@@ -34,7 +34,10 @@
     - Added the feature in the GUI to "install" DevScript. This will associate .dev files with the editor when double clicked (Windows only)
       Don't worry, this will just add a regestry key called [coming soon]
       The GUI also gives an option to "uninstall" e.g. remove the registry key
-      
+    - Fixed bug, where the "scriptExit" function was not called
+    - Changed the error message for a terminating script from "Error at ..." to: "Unhandled error at ..."
+      Handled errors would not terminate the script. Errors can be handled using try/catch blocks.
+    - Added info to the onExit script function
 1.9.13:
 	- The "import" command got very few love the last updates:
 		- The class of the imported .jar file only has to extend the "Library" class and does not need to be named "CustomLibrary"

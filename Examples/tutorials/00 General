@@ -1,0 +1,36 @@
+General info for DevScript usage and how to get along in the tutorials
+
+DevScript is based on commands and arguments of those commands, just like any CLI.
+An example in Linux of a command would be:
+
+	echo "Hello World"
+	
+Where "Hello World" would be a String parsed to the command "echo".
+When speaking about commands in DevScript, the name of the command is always in lower case,
+and arguments to the command are written in capital letters and wrapped in either [ ] or < >
+
+	println [STRING]
+	
+This would be the simplest form of command that accepts a string as argument.
+But when you print the command syntax using the "help" DevScript command, the println command looks a little different:
+
+	help;
+
+Output: println [ARRAY_ANY]
+This Data type [ARRAY_ANY] may seem confusing at first. This just means that the command
+accepts any data type wheter it is an array or not.
+
+So, DevScript has a few data types (Found in com.devkev.devscript.raw.ProcessUtils.Type enum)
+	NULL("null"), 
+	STRING("string"), 
+	BOOLEAN("boolean"),
+	BLOCK("block"), 
+	ANY("?"), 
+	NATIVE_OBJECT("obj")
+	CONTINUE("...")
+	ARRAY_ANY("???"),
+	INTEGER("int"), 
+	FLOAT("float"), 
+	NUMBER("num");
+	
+	 

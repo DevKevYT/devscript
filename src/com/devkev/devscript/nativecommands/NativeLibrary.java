@@ -343,7 +343,7 @@ public class NativeLibrary extends Library {
 					}
 				},
 				
-				new Command("exec", "string", "Executes a shell command. Output only and limited to one command.") {
+				new Command("exec", "string block", "Executes a shell command. Output is streamed per line into the block specified in argument two as Variable $0") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						String OS = System.getProperty("os.name", "generic").toLowerCase();
 							
@@ -355,25 +355,29 @@ public class NativeLibrary extends Library {
 							builder = new ProcessBuilder("/bin/bash", "-c", args[0].toString());
 						} else {
 							application.error("Failed to determine operating system");
+							return null;
 						}
 						
 						process = builder.start();
 	
 						execReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 						String line = null;
-						while ( (line = execReader.readLine()) != null) {
+						while ((line = execReader.readLine()) != null) {
 							application.log(line, true);
+//							if(application.executeBlock(block, no_arguments, line) != ExecutionState.STATE_SUCCESS) {
+//								break;
+//							}
 						}
+						
 						execReader.close();
 	
-						execErrorReader =  new BufferedReader(new InputStreamReader(process.getErrorStream()));
-						line = null;
-						while ( (line = execErrorReader.readLine()) != null) {
-							application.log(line, true);
-						}
-						execErrorReader.close();
-						process.destroy();
-						
+//						execErrorReader =  new BufferedReader(new InputStreamReader(process.getErrorStream()));
+//						line = null;
+//						while ( (line = execErrorReader.readLine()) != null) {
+//							application.log(line, true);
+//						}
+//						execErrorReader.close();
+//						process.destroy();
 						return null;
 					}
 				},
@@ -1259,7 +1263,11 @@ public class NativeLibrary extends Library {
 
 	@Override
 	public void scriptExit(Process process, int exitCode, String errorMessage) {
+			
+			System.out.println("Freeing resources on native Library (" + exitCode + " " + errorMessage + ") for process " + process.toString());
+			
 			if(execErrorReader != null) {
+				System.out.println("Process error reader still open. Closing ...");
 				try {
 					execErrorReader.close();
 					execErrorReader = null;
@@ -1270,6 +1278,7 @@ public class NativeLibrary extends Library {
 			}
 			
 			if(execReader != null) {
+				System.out.println("Process error reader still open. Closing ...");
 				try {
 					execReader.close();
 					execReader = null;
@@ -1279,6 +1288,7 @@ public class NativeLibrary extends Library {
 				}
 			}
 			if(this.process != null) {
+				System.out.println("Command process still running. Destroying ...");
 				this.process.destroy();
 			}
 	}

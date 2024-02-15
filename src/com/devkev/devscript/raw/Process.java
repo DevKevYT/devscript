@@ -76,7 +76,7 @@ public class Process {
 	}
 	
 	public Thread execute(String script, boolean newThread) {
-		finalizing = false;
+		//finalizing = false;
 		random = new Random();
 		
 		if(main != null) {
@@ -160,7 +160,7 @@ public class Process {
 	/**@param garbageCollector - If the process should remove variables after the block was executed.
 	 * Usually true, because the variables would not be accessible anymore anyway.
 	 * not garbegage collected and are isolated from other blocks.
-	 * @return The execution state wether this block executed successful or with an exception*/
+	 * @return The execution state wether this block executed successful or with an exception. If no errors ocurred, the returned object equals to {@link ExecutionState#STATE_SUCCESS}*/
 	public ExecutionState executeBlock(Block block, boolean garbageCollector, Object... args) {
 		if(block == null) block = getMain();
 		
@@ -193,7 +193,7 @@ public class Process {
 		
 		//Searches for a variable called onexit with the type BLOCK
 		//If the executed block is MAIN, the script has finished
-		if(main == block) {
+		if(block == main) {
 			finalizeExit(0, "finished");
 			
 			if(listener != null) 
@@ -640,14 +640,17 @@ public class Process {
 	
 	public void log(String message, boolean newline) {
 		for(Output output : this.output) output.log(message, newline);
+		System.out.print("[+]" + message + (newline ? " \n" : ""));
 	}
 	
 	public void error(String message) {
 		for(Output output : this.output) output.error(message);
+		System.out.println("[-] " + message);
 	}
 	
 	public void warning(String message) {
 		for(Output output : this.output) output.warning(message);
+		System.out.println("[!] " + message);
 	}
 	
 	public void addOutput(Output output) {
@@ -703,7 +706,7 @@ public class Process {
 			if (block.currentCommand.length() > 30) {
 				block.currentCommand = block.currentCommand.subSequence(0, 10) + " ... " + block.currentCommand.substring(block.currentCommand.length() - 10, block.currentCommand.length());
 			}
-			if(!errorMessage.isEmpty()) error("Error at [" + block.currentCommand + "]> " + errorMessage);
+			if(!errorMessage.isEmpty()) error("Unhandled error at [" + block.currentCommand + "]> " + errorMessage);
 			
 			finalizeExit(1, errorMessage);
 			
@@ -876,21 +879,21 @@ public class Process {
 		return null;
 	}
 	
-	boolean finalizing = false;
-	
+	/**
+	 * Free up resources and call the "onExit" script function and the {@link Library#scriptExit(Process, int, String)} function on all libraries, in case open resouces, 
+	 * for example sockets or readers are still used
+	 * */
 	public void finalizeExit(int exitCode, String errorMessage) {
-		if(!finalizing) return;
+		if(getMain() != null) { //Main should not be null
+			Object exitFunction = getVariable("onExit", getMain());
+			
+			if(exitFunction != null) 
+				executeBlock(((Block) exitFunction), true, exitCode, errorMessage);
+			
+		} else System.out.println("Failed to call onExit function");
 		
-		finalizing = true;
-		
-		Object exitFunction = getVariable("onexit", null);
-		
-		if(exitFunction != null) 
-			executeBlock(((Block) exitFunction), true, exitCode, errorMessage);
-		
-		for(HookedLibrary lib : libraries) {
+		for(HookedLibrary lib : libraries) 
 			lib.lib.scriptExit(this, exitCode, errorMessage);
-		}
 	}
 	
 	@Override
