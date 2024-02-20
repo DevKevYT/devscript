@@ -689,11 +689,7 @@ public class Process {
 				block.currentCommand = block.currentCommand.subSequence(0, 10) + " ... " + block.currentCommand.substring(block.currentCommand.length() - 10, block.currentCommand.length());
 			}
 			if(!errorMessage.isEmpty()) error("Unhandled error at [" + block.currentCommand + "]> " + errorMessage);
-			
-			//finalizeExit(1, errorMessage);
-			
 			block.interrupt();
-			
 		}
 		
 		try {
@@ -701,15 +697,12 @@ public class Process {
 			synchronized (inputStream) {
 				inputStream.notify();
 			}
-			
 			inputStream.close();
-			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
 		//TODO
-		//Pass the executionState ti the parent block
 		block.currentExecutionState = new ExecutionState(ExitCodes.ERROR, errorMessage);
 		
 		garbageCollection(runtime);

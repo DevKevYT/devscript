@@ -829,7 +829,6 @@ public class NativeLibrary extends Library {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						Block b = (Block) args[0];
 						b.setAsLoop();
-						//b.beginLoop();
 						while(true) {
 							if(b.isAlive() || b.interrupted()) {
 								application.garbageCollection(b);
