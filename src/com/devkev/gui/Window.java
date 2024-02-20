@@ -346,25 +346,29 @@ public class Window {
 			public void actionPerformed(ActionEvent e) {
 				if(p.isRunning()) return;
 				
-				try {
-					console.consoleText.setText("");
-					console.toFront();
-					console.setEnabled(true);
-					console.consoleStatus.setText("Running ...");
-					console.setVisible(true);	
-					//window.setEnabled(false);
-					
-					p.file = openedFile;
-					p.setCaseSensitive(false);
-					p.clearLibraries();
-					p.includeLibrary(new NativeLibrary());
-					p.includeLibrary(guiCommands);
-					p.execute(textArea.getText(), true);
-					p.setVariable("keyCode", "", false, true);
-				} catch(ScriptHostException ex) {
-					console.consoleText.setText(ex.getMessage());
-					ex.printStackTrace();
-				}
+				new Thread(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							console.consoleText.setText("");
+							console.toFront();
+							console.setEnabled(true);
+							console.consoleStatus.setText("Running ...");
+							console.setVisible(true);	
+							//window.setEnabled(false);
+							
+							p.file = openedFile;
+							p.setCaseSensitive(false);
+							p.clearLibraries();
+							p.includeLibrary(new NativeLibrary());
+							p.includeLibrary(guiCommands);
+							p.execute(textArea.getText());
+						} catch(ScriptHostException ex) {
+							console.consoleText.setText(ex.getMessage());
+							ex.printStackTrace();
+						}
+					}
+				}, "Script Host").start();
 			}
 		});
 		m3.add(run);
@@ -379,7 +383,7 @@ public class Window {
 				console.consoleText.setText("");
 				console.toFront();
 				console.setVisible(true);
-				p.execute("gui.size 1000 400;help", false);
+				p.execute("gui.size 1000 400;help");
 			}});
 		m4.add(commandCC);
 		m4.addSeparator();

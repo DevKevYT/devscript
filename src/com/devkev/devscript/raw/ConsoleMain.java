@@ -65,9 +65,9 @@ public class ConsoleMain {
 			p.clearLibraries();
 			
 			if(filePath != null) {
-				p.execute(new File(args[1]), true);
+				p.execute(new File(args[1]));
 			} else if(scriptToExecute != null) {
-				p.execute(args[1], true);
+				p.execute(args[1]);
 			} else {
 				if(ConsoleMain.class.getResourceAsStream("/Editor.txt") == null) {
 					System.err.println("Editor file is missing at: " + URLDecoder.decode(ConsoleMain.class.getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8"));
@@ -82,7 +82,7 @@ public class ConsoleMain {
 					line = reader.readLine();
 				}
 				reader.close();
-				p.execute(code, false);
+				p.execute(code);
 				return;
 			}
 		}

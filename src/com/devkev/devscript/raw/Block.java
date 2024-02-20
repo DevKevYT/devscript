@@ -12,8 +12,7 @@ public class Block {
 	public final StringBuilder blockCode;
 	public int executeIndex = 0;	//The current char index, that is executed or compiled. 0 < ExecuteIndex < blockCode.length() 
 	String currentCommand = "";
-	public Thread thread;  	//A block can also be attached to a thread. This variable would store the thread, the blockCode is executed in.
-						//Be careful. May be null
+	Thread threadMeta;  	//A block can also be attached to a thread. This variable would store the thread, the blockCode is executed in.					//Be careful. May be null
 	
 	private Block parent;
 	
@@ -45,8 +44,17 @@ public class Block {
 		ArrayList<Object> args;
 	}
 	
+	Block(StringBuilder blockCode, Block parent, Process host, Thread thread) {
+		this(blockCode, parent, host);
+		this.threadMeta = thread;
+	}
+	
 	Block(StringBuilder blockCode, Block parent, Process host) {
 		this.blockCode = blockCode;
+		
+		if(host == null)
+			throw new ScriptHostException("The script host of a block cannot be null nor executed without a script host");
+		
 		this.host = host;
 		
 		if(parent != null) {
@@ -61,7 +69,7 @@ public class Block {
 		Block current = this;
 		while(current.parent != null) {
 			if(current.parent == null) return current.isTryCatch ? current : null;
-			else if(current.parent == host.main) return current.isTryCatch ? current : null;
+			else if(current.parent == host.getRuntime()) return current.isTryCatch ? current : null;
 			else {
 				current = current.parent;
 				if(current.isTryCatch()) return current;
@@ -228,13 +236,79 @@ public class Block {
 		else return null;
 	}
 	
+	public void pause(int millisec) {
+		if(threadMeta == null) return;
+		
+		if(alive) {
+			synchronized (threadMeta) {
+				try {
+					threadMeta.wait(millisec);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		} 
+	}
+	
+	/**Pauses this block or any parent block this command is called in*/
+	public void pause() {
+		boolean anyThread = false;
+		
+		Block current = this;
+		while(current.getParent() != null) {
+			if(current.threadMeta != null)  {
+				anyThread = true;
+				break;
+			}
+			current = current.getParent();
+		}
+		
+		if(alive) {
+			
+			if(!anyThread) {
+				host.warning("Block has no thread attached. Pausing wont hav any effect");
+				return;
+			}
+			
+			synchronized (threadMeta) {
+				try {
+					threadMeta.wait();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		} 
+	}
+	
+	/**Waits for another block to finish it's execution
+	 * @throws InterruptedException */
+	public void waitFor(Block block) throws InterruptedException {
+		block.threadMeta.join();
+	}
+	
+	/**Notifies a block with a thread.*/
+	public void wake() {
+		if(threadMeta == null) {
+			host.warning("Block has no thread");
+			return;
+		}
+		if(!alive) {
+			host.warning("Block not running. Nothing to wake");
+			return;
+		}
+		
+		synchronized (threadMeta) {
+			threadMeta.notify();
+		}
+	}
+	
 	public Process getHost() {
 		return host;
 	}
 	
 	public String toString() {
-		return "BLOCK:" + (isFunction ? "F" : "") + (isConstrucor ? "O" : "") + (isTryCatch ? "T" : "") + (isLoop ? "L" : "") + " " + stack
-				+ (thread != null ? " Thread: " + thread.getName() : "");
+		return "BLOCK:" + (isFunction ? "F" : "") + (isConstrucor ? "O" : "") + (isTryCatch ? "T" : "") + (isLoop ? "L" : "") + " " + stack;
+				//+ (thread != null ? " Thread: " + thread.getName() : "");
 					//+ " CODE [" + blockCode + "]";
 	}
 }

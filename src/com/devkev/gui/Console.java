@@ -72,7 +72,7 @@ public class Console extends JFrame {
 					consoleStatus.setText("Running ...");
 					consoleText.setEditable(false);
 					
-					parent.p.kill(parent.p.getMain(), "Terminated by DevScript Console");
+					parent.p.kill(parent.p.getRuntime(), "Terminated by DevScript Console");
 					consolePane.getVerticalScrollBar().setValue(consolePane.getVerticalScrollBar().getMaximum());
 				}
 			}
@@ -89,17 +89,20 @@ public class Console extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				if(p.isRunning()) 
-					p.kill(p.getMain(), "Rerunning script");;
+					p.kill(p.getRuntime(), "Rerunning script");;
 				
 				consoleText.setText("");
 				toFront();
 				setEnabled(true);
 				consoleStatus.setText("Running ...");
 				setVisible(true);	
-				//window.setEnabled(false);
 				
-				p.execute(parent.textArea.getText(), true);
-				p.setVariable("keyCode", "", false, true);
+				new Thread(new Runnable() {
+					@Override
+					public void run() {
+						p.execute(parent.textArea.getText());
+					}
+				}).start();
 			}
 		});
 		contentPane.add(rerun);
@@ -127,7 +130,7 @@ public class Console extends JFrame {
 			@Override
 			public void keyReleased(KeyEvent e) {
 				if(p.isRunning()) {
-					p.setVariable("keyCode", "", false, false);
+					p.getRuntime().setVariable("keyCode", "", true, false, true);
 				}
 			}
 			
@@ -135,7 +138,7 @@ public class Console extends JFrame {
 			public void keyPressed(KeyEvent e) {
 				if(p.isRunning()) {
 					//Set the variable "keyPressed" to the char that is pressed
-					p.setVariable("keyCode", e.getKeyChar(), false, false);
+					p.getRuntime().setVariable("keyCode", e.getKeyChar(), true, false, true);
 				}
 			}
 		});
@@ -149,7 +152,7 @@ public class Console extends JFrame {
 			public void windowClosing(WindowEvent arg0) {
 				if(p.isRunning()) {
 					System.out.println("Closing running instance");
-					p.kill(p.getMain(), "Interrupted by program");
+					p.kill(p.getRuntime(), "Interrupted by program");
 				}
 				parent.window.setEnabled(true);
 				inputStart = 0;

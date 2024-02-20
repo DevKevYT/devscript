@@ -70,7 +70,7 @@ public abstract class Library {
     public void executeEventFunction(String functionName, Object ... variables) throws IllegalAccessError {
     	if(bound != null) {
     		if(bound.isRunning()) {
-    			Object obj = bound.getVariable(functionName, null);
+    			Object obj = bound.getRuntime().getVariable(functionName);
     			if(obj != null) {
     				if(obj instanceof Block) {
     					Block b = (Block) obj;

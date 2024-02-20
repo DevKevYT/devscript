@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 import com.devkev.devscript.nativecommands.NativeLibrary;
@@ -14,10 +16,10 @@ import com.devkev.devscript.raw.ExecutionState.ExitCodes;
 
 public class Process {
 
-	private static long process_id = 0L;
-	
 	private ArrayList<HookedLibrary> libraries = new ArrayList<HookedLibrary>();
 	private ArrayList<Output> output = new ArrayList<Output>(1); 
+	//Store all the threads of blocks in this "public" pool, so they can be controlled when the script terminates
+	private final List<Block> threadedBlockRuntimes = Collections.synchronizedList(new ArrayList<Block>());
 	private ApplicationListener listener;
 	
 	public static final boolean FALSE = false;
@@ -27,7 +29,7 @@ public class Process {
 	private BufferedReader inputReader;
 	private InputStream inputStream;
 	
-	volatile Block main;
+	volatile Block runtime;
 	//Main block is not never in the list, since the process gets terminated, if main is killed.
 	boolean breakRequested = false;
 	
@@ -54,6 +56,8 @@ public class Process {
 		}
 	}
 	
+	//The id of the thread the script is runned e.g. the "execute" function is called. Blocks are only allowed to be executed in this thread context as well
+	private long threadID;
 	
 	/**@param useCache - If the process should temprary save common used commands in a separate list.
 	 * May improve performance on large scripts, but also increase the memory usage.
@@ -70,72 +74,50 @@ public class Process {
 			public void run() {
 				//Cant execute onexit function. Just execute the library listener
 				if(isRunning())
-					kill(main, "JVM killed");
+					kill(runtime, "JVM killed");
 			}
 		}));
 	}
 	
-	public Thread execute(String script, boolean newThread) {
-		//finalizing = false;
+	public ExecutionState execute(String script) {
+		
 		random = new Random();
 		
-		if(main != null) {
-			if(main.alive) {
-				warning("Java Environment was trying to start a new process, while its already running");
-				return null;
-			}
+		if(isRunning()) {
+			warning("Java Environment was trying to start a new process, while its already running");
+			return null;
 		}
 		
 		script = script.replaceAll("\t", "");
 		script = script.replaceAll("\r", "");
-		script = script.replaceAll("\n", " ");
+		script = script.replaceAll("\n", "");
 		
-		//There might be variables to preserve!
-		if(main != null) {
-			ArrayList<Variable> mainVars = new ArrayList<Variable>();
-			mainVars.addAll(main.getLocalVariables());
-			main = new Block(new StringBuilder(script), null, this);
-			
-			for(Variable var : mainVars) {
-				if(var.permanent)
-					main.setVariable(var.name, var.value, var.canBeChanged, true, true);
-			}
-			
-			main.thread = null;
-		} else {
-			main = new Block(new StringBuilder(script), null, this);
-			main.thread = null;
-		}
+		//TODO persistent variables
+		runtime = new Block(new StringBuilder(script), null, this);
 		
-		currentChar = System.currentTimeMillis();
+		threadID = Thread.currentThread().getId();
 		
-		process_id ++;
-		if(newThread) {
-			main.thread =  new Thread(new Runnable() {
-				public void run() {
-					executeBlock(main, true);
-					//start(main);
-					main = null;
+		ExecutionState state = executeBlock(runtime, true);
+		
+		//Free resources and interrupt all threads, in case the process was terminated unexpected
+		finalizeExit(runtime.currentExecutionState.exitCode, runtime.currentExecutionState.stateMessage);
+		
+		synchronized (this) {
+			for(Block b : threadedBlockRuntimes) {
+				if(b.threadMeta.isAlive()) {
+					System.out.println("Found thread that is still alive! (" + b.threadMeta.getName() + ")");
+					b.threadMeta.interrupt();
 				}
-			}, "process " + process_id);
-			main.thread.start();
-			return main.thread;
-		} else {
-			executeBlock(main, true);
-			//start(main);
-			main = null;
+			}
 		}
-		return null;
+		
+		if(listener != null) 
+			listener.done(runtime.currentExecutionState); 
+		
+		return state;
 	}
 	
-	public Thread execute(File file, boolean newThread) throws IOException {
-		if(main != null) {
-			if(main.alive) {
-				warning("Java Environment was trying to start a new process, while its already running");
-				return null;
-			}
-		}
-		
+	public ExecutionState execute(File file) throws IOException {	
 		String code  = "";
 		BufferedReader reader = new BufferedReader(new FileReader(file));
 		String line = reader.readLine();
@@ -146,7 +128,7 @@ public class Process {
 		reader.close();
 		
 		this.file = file;
-		return execute(code, newThread);
+		return execute(code);
 	}
 	
 	public void setCaseSensitive(boolean caseSensitive) {
@@ -157,12 +139,47 @@ public class Process {
 		return caseSensitive;
 	}
 	
+	/**Executes a block in a separate thread
+	 * Regular blocks are only allowed to be run in the same thread as the script host*/
+	public Thread executeThreadedBlock(final Block block, final boolean garbageCollector, final Object... args) {
+		
+		if(Thread.currentThread().getId() != threadID)
+			throw new ScriptHostException("You are not allowed to execute blocks in a different thread context than the ScriptHost");
+		
+		Thread t = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				executeUnsave(block, garbageCollector, args);
+				
+				synchronized (Process.this) {
+					threadedBlockRuntimes.remove(block);
+				}
+			}
+		}, "Threaded Block " + block.toString());
+		synchronized (this) {
+			threadedBlockRuntimes.add(block);
+		}
+		block.threadMeta = t;
+		t.start();
+		return t;
+	}
+	
 	/**@param garbageCollector - If the process should remove variables after the block was executed.
 	 * Usually true, because the variables would not be accessible anymore anyway.
-	 * not garbegage collected and are isolated from other blocks.
+	 * not garbegage collected and are isolated from other blocks. 
+	 * @param caller - The block that initiates this execution. Important for stack traces and error handling
 	 * @return The execution state wether this block executed successful or with an exception. If no errors ocurred, the returned object equals to {@link ExecutionState#STATE_SUCCESS}*/
 	public ExecutionState executeBlock(Block block, boolean garbageCollector, Object... args) {
-		if(block == null) block = getMain();
+		
+		if(Thread.currentThread().getId() != threadID)
+			throw new ScriptHostException("You are not allowed to execute blocks in a different thread context than the ScriptHost");
+		
+		return executeUnsave(block, garbageCollector, args);
+	}
+	
+	//Just for internal use
+	private ExecutionState executeUnsave(Block block, boolean garbageCollector, Object... args) {
+		if(block == null) block = getRuntime();
 		
 		/*The arguments are just variables declared in the block - local scope and removed afterwards, if requested*/
 		if(block != null && args.length > 0) {
@@ -170,13 +187,11 @@ public class Process {
 			//1.9.14: Also add the arguments as an array with the name $args
 			for(int i = 0; i < args.length; i++) {
 				block.setVariable(String.valueOf(i), args[i], false, false, true);
-				//setVariable(String.valueOf(i), args[i], true, false, block);
 				arr.push(args[i]);
 			}
 			
 			block.setVariable("args", arr, false, false, true);
 		}
-		
 		
 		if(block == null) return ExecutionState.STATE_BLOCK_NULL;
 		StringBuilder command = block.blockCode;
@@ -189,15 +204,6 @@ public class Process {
 		
 		while(block.executeIndex < block.blockCode.length()-1 && block.alive) {
 			executeCommand(command, block.executeIndex, true, block);
-		}
-		
-		//Searches for a variable called onexit with the type BLOCK
-		//If the executed block is MAIN, the script has finished
-		if(block == main) {
-			finalizeExit(0, "finished");
-			
-			if(listener != null) 
-				listener.done(main.currentExecutionState); 
 		}
 		
 		block.alive = false;
@@ -446,7 +452,7 @@ public class Process {
 					
 					if(realVarName.length() == 0) realVarName.append(dotvars);
 					
-					Object variableValue = getVariable(realVarName.toString(), dotScope);
+					Object variableValue = dotScope.getVariable(realVarName.toString());
 					
 					if(variableValue == null && !realVarName.toString().equals("null")) {
 						kill(block, "Unknown variable name or property value: " + realVarName.toString());
@@ -569,30 +575,6 @@ public class Process {
 		block.clearVariables();
 	}
 	
-	public void removeVariable(String name, Block block) {
-		//TODO remove
-	}
-	
-	/**If a variable with the name already exist, the value is altered, if:<br>
-	 * <li>The data type is the same,<br>
-	 * <li>The variable is not declared as final
-	 * <br>
-	 * @param block - The block, the variable will be associated with. Important is the {@link Block#stack}
-	 * Use null, if the variable is not declared inside a block.*/
-	public void setVariable(String name, Object value, boolean FINAL, boolean permanent, Block block) {
-		block.setVariable(name, value, FINAL, permanent, true);
-	}
-	
-	public void setVariable(String name, Object value, boolean FINAL, boolean permanent) {
-		setVariable(name, value, FINAL, permanent, getMain());
-	}
-	
-	/**Returns null, if the variable was not found
-	 * Use null to use main block*/
-	public Object getVariable(String name, Block block) {
-		return block.getVariable(name);
-	}
-	
 	/**Adding a library with the same name as an already included one will result in an exception.
 	 * Same goes with commands.
 	 * Library names are case-sensitive<br>
@@ -645,12 +627,12 @@ public class Process {
 	
 	public void error(String message) {
 		for(Output output : this.output) output.error(message);
-		System.out.println("[-] " + message);
+		System.out.println("[!] " + message);
 	}
 	
 	public void warning(String message) {
 		for(Output output : this.output) output.warning(message);
-		System.out.println("[!] " + message);
+		System.out.println("[-] " + message);
 	}
 	
 	public void addOutput(Output output) {
@@ -708,9 +690,10 @@ public class Process {
 			}
 			if(!errorMessage.isEmpty()) error("Unhandled error at [" + block.currentCommand + "]> " + errorMessage);
 			
-			finalizeExit(1, errorMessage);
+			//finalizeExit(1, errorMessage);
 			
 			block.interrupt();
+			
 		}
 		
 		try {
@@ -725,73 +708,16 @@ public class Process {
 			e.printStackTrace();
 		}
 		
+		//TODO
+		//Pass the executionState ti the parent block
 		block.currentExecutionState = new ExecutionState(ExitCodes.ERROR, errorMessage);
 		
-		garbageCollection(main);
+		garbageCollection(runtime);
 	}
 	
 	public boolean isRunning() {
-		if(main != null) return main.alive;
+		if(runtime != null) return runtime.alive;
 		else return false;
-	}
-	
-	public void pause(Block block, int millisec) {
-		if(block.thread == null) return;
-		
-		if(block.alive) {
-			synchronized (block.thread) {
-				try {
-					block.thread.wait(millisec);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		} 
-	}
-	
-	public void pause(Block block) {
-		boolean anyThread = false;
-		
-		Block current = block;
-		while(block.getParent() != null) {
-			if(current.thread != null)  {
-				anyThread = true;
-				break;
-			}
-			current = block.getParent();
-		}
-			
-		
-		if(!anyThread) {
-			warning("Block has no thread attached. Pausing wont hav any effect");
-			return;
-		}
-		
-		if(block.alive) {
-			synchronized (current.thread) {
-				try {
-					current.thread.wait();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		} 
-	}
-	
-	/**Notifies a block with a thread.*/
-	public void wake(Block block) {
-		if(block.thread == null) {
-			warning("Block has no thread");
-			return;
-		}
-		if(!block.alive) {
-			warning("Block not running. Nothing to wake");
-			return;
-		}
-		
-		synchronized (block.thread ) {
-			block.thread.notify();
-		}
 	}
 	
 	/**Pauses the process thread (if not specified, the Runnable.getRunnable() thread)
@@ -828,8 +754,10 @@ public class Process {
 		return output;
 	}
 	
-	public Block getMain() {
-		return main;
+	/**Returns the main block and its context
+	 * @return The main block, if this script host is running or null*/
+	public Block getRuntime() {
+		return runtime;
 	}
 	
 	public void breakLoop() {
@@ -884,8 +812,8 @@ public class Process {
 	 * for example sockets or readers are still used
 	 * */
 	public void finalizeExit(int exitCode, String errorMessage) {
-		if(getMain() != null) { //Main should not be null
-			Object exitFunction = getVariable("onExit", getMain());
+		if(getRuntime() != null) { //Main should not be null
+			Object exitFunction = getRuntime().getVariable("onExit");
 			
 			if(exitFunction != null) 
 				executeBlock(((Block) exitFunction), true, exitCode, errorMessage);
@@ -901,7 +829,7 @@ public class Process {
 		finalizeExit(1, "JVM Killed");
 		
 		if(listener != null) {
-			listener.done(main.currentExecutionState); 
+			listener.done(runtime.currentExecutionState); 
 		}
 	}
 }

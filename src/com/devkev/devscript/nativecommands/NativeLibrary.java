@@ -125,7 +125,7 @@ public class NativeLibrary extends Library {
 									if(variableValue == null) {
 										Array array = new Array();
 										for(int k = 0; k < value; k++) array.push(Process.UNDEFINED);
-										dotScope.setVariable(realVarName.toString(), array, false, false, true);
+										dotScope.setVariable(realVarName.toString(), array, true, false, true);
 										variableValue = dotScope.getVariable(realVarName.toString());
 									} else if(!(variableValue instanceof Array)) {
 										application.kill(block, "Trying to get index from variable \"" + realVarName + "\" with type: " + ProcessUtils.toDataType(variableValue).type);
@@ -165,7 +165,7 @@ public class NativeLibrary extends Library {
 									}
 								} else {
 									if(i == objDots.size()-1) {
-										dotScope.setVariable(realVarName.toString(), args[1], false, false, true);
+										dotScope.setVariable(realVarName.toString(), args[1], true, false, true);
 										return null;
 									}
 								}
@@ -174,7 +174,8 @@ public class NativeLibrary extends Library {
 						
 						if(args[1] instanceof Block) 
 							((Block) args[1]).setAsFunction();
-						application.setVariable(args[0].toString(), args[1], false, false, block);
+						
+						block.setVariable(args[0].toString(), args[1], true, false, true);
 						return null;
 					}
 				},
@@ -247,7 +248,7 @@ public class NativeLibrary extends Library {
 						((Block) args[0]).setAsTryCatch();
 						ExecutionState state = application.executeBlock((Block) args[0], false);
 						Block catchBlock = (Block) args[3];
-						catchBlock.setVariable(args[2].toString(), state.stateMessage, true, false, true);
+						catchBlock.setVariable(args[2].toString(), state.stateMessage, false, false, true);
 						application.executeBlock(catchBlock, false);
 						
 						return null;
@@ -387,7 +388,7 @@ public class NativeLibrary extends Library {
 						Process p = new Process(true);
 						p.setInput(application.getInput());
 						for (Output o : application.getOutput()) p.addOutput(o);
-						p.execute(args[0].toString(), false);
+						p.execute(args[0].toString());
 						return null;
 					}
 				},
@@ -433,7 +434,7 @@ public class NativeLibrary extends Library {
 						Block b = (Block) args[1];
 						b.setAsObject();
 						application.executeBlock(b, false);
-						application.setVariable(args[0].toString(), b, false, false, block);
+						block.setVariable(args[0].toString(), b, false, false, true);
 						return null;
 					}
 				},
@@ -668,6 +669,7 @@ public class NativeLibrary extends Library {
 				new Command("debug", "", "Just for breakpoints") {
 					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
+						Thread.dumpStack();
 						return null;
 					}
 				},
@@ -677,19 +679,19 @@ public class NativeLibrary extends Library {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
 						if(args.length == 0) {
 							application.log("----------\nACCESSIBLE VARIABLES FOR BLOCK " + 
-									(block == application.getMain() ? "[MAIN]" : "[" + block + "]") + " :", true);
+									(block == application.getRuntime() ? "[MAIN]" : "[" + block + "]") + " :", true);
 							for(Variable var : block.getAccessibleVariables()) {
 								application.log("Name: " + var.name + "\t\tBlock: " 
-										+ (var.getBlock() == application.getMain() ? "[MAIN]" : "[" + var.getBlock() + "]")
-										+ "\t\tValue: " + application.getVariable(var.name, var.getBlock()), true);
+										+ (var.getBlock() == application.getRuntime() ? "[MAIN]" : "[" + var.getBlock() + "]")
+										+ "\t\tValue: " + var.getBlock().getVariable(var.name), true);
 							}
 							application.log("----------", true);
 						} else if(args.length == 1) {
 							application.log("----------\nACCESSIBLE VARIABLES FOR BLOCK " + args[0] + " :", true);
 							for(Variable var : ((Block) args[0]).getAccessibleVariables()) {
 								application.log("Name: " +  var.name + "\t\tBlock: " 
-										+ (var.getBlock() == application.getMain() ? "[MAIN]" : "[" + var.getBlock() + "]")
-										+ "\t\tValue: " + application.getVariable(var.name, var.getBlock()) + "\n----------", true);
+										+ (var.getBlock() == application.getRuntime() ? "[MAIN]" : "[" + var.getBlock() + "]")
+										+ "\t\tValue: " + var.getBlock().getVariable(var.name) + "\n----------", true);
 							}	
 							application.log("----------", true);
 						}
@@ -769,15 +771,15 @@ public class NativeLibrary extends Library {
 						String iterator = "0";
 						Block b = (Block) args[2];
 						b.setAsLoop();
-						b.setVariable(args[0].toString(), iterator, false, false, true);
+						b.setVariable(args[0].toString(), iterator, true, false, true);
 						
 						int length = Integer.valueOf(args[1].toString());
 						a: for(int i = 0; i < length; i++) {
-							b.setVariable(args[0].toString(), String.valueOf(i), false, false, false);
+							b.setVariable(args[0].toString(), String.valueOf(i), true, false, false);
 							if(!b.interrupted()) {
 								iterator = String.valueOf(i);
 								application.executeBlock(b, i == length-1); //Only clear variables, when for loop finished
-								if(i < length-1) i = Integer.valueOf(application.getVariable(args[0].toString(), b).toString());
+								if(i < length-1) i = Integer.valueOf(b.getVariable(args[0].toString()).toString());
 							} else break a;
 						}
 						return null;
@@ -882,15 +884,10 @@ public class NativeLibrary extends Library {
 				
 				new Command("thread", "string block", "Runs a separate thread along the process") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						Thread t = new Thread(new Runnable() {
-							public void run() {
-								application.executeBlock((Block) args[1], true);
-							}
-						}, args[0].toString());
-						application.setVariable(args[0].toString(), (Block) args[1], true, false, block);
-						((Block) args[1]).thread = t;
-						((Block) args[1]).setAsFunction();
-						t.start();
+						Block b = (Block) args[1];
+						b.setAsFunction();
+						block.setVariable(args[0].toString(), b, false, false, true);
+						application.executeThreadedBlock(b, true);
 						return null;
 					}
 				},
@@ -904,7 +901,7 @@ public class NativeLibrary extends Library {
 				
 				new Command("pause", "", "Pauses the block, the command is executed in") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						application.pause(block);
+						block.pause();
 						return null;
 					}
 				},
@@ -912,27 +909,21 @@ public class NativeLibrary extends Library {
 				new Command("pause", "block", "Pauses the specified block, if it is running in a separate thread.") {
 					@Override
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(((Block) args[0]).thread == null) application.warning("Block has not thread attached. Pausing wont have any effect");
-						if(!((Block) args[0]).alive) application.warning("Block is not active");
-						application.pause(((Block) args[0]));
+						((Block) args[0]).pause();
 						return null;
 					}
 				},
 				
 				new Command("waitfor", "block", "Waits for a block to finish") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						if(((Block) args[0]).thread == null) {
-							application.warning("Block has no thread attached.");
-							return null;
-						}
-						((Block) args[0]).thread.join();
+						block.waitFor((Block) args[0]);
 						return null;
 					}
 				},
 				
 				new Command("wake", "block", "Wakes the specified thread") {
 					public Object execute(Object[] args, Process application, Block block) throws Exception {
-						application.wake((Block) args[0]);
+						((Block) args[0]).wake();
 						return null;
 					}
 				},

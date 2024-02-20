@@ -14,6 +14,14 @@ the "exec" command outputs something. The simplest thing would be to just print 
 	};
 	exec "ping google.com -n 3" $printPingResult;
 
+# Good example would be, if you want to execute a shell command, but suppress its output and
+# at the same time, store it in a separate variable
+	path = "";
+	exec "echo %APPDATA%" {
+		path = $0;
+	};
+	println "The local Appdata folder is: " $path;
+
 # You can check for the operating system with the following command: #
 	os = (getOS);
 	println "Operating system is: " $os;
